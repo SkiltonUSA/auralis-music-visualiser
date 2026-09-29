@@ -182,6 +182,7 @@ export class EndlessTunnel {
     this.camera = camera; this.startAngle = random() * TAU;
     this.distance = 0; this.time = 0; this.speed = 4.8; this.pulse = 0;
     this.tubeRotation = 0;
+    this.motionTime = 0; this.roll = 0; this.sway = 0; this.lift = 0; this.bank = 0;
     this.audio = new THREE.Vector4(0, 0, 0, 0); this.look = new THREE.Vector3();
     this.uniforms = { uTime: { value: 0 }, uTubeRotation: { value: 0 }, uPulse: { value: 0 }, uTileFlash: { value: 0 }, uChecker: { value: style === "checker" ? 1 : 0 }, uAudio: { value: this.audio },
       uSpectrum: { value: spectrum }, uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uC: { value: new THREE.Color() } };
@@ -199,10 +200,15 @@ export class EndlessTunnel {
     const targetSpeed = 4.8 + this.audio.w * 2.8 + this.audio.x * .8;
     this.speed += (targetSpeed - this.speed) * (1 - Math.exp(-dt * .85));
     this.distance += dt * this.speed; this.time += dt;
-    if (this.style === "checker" && dt > 0) {
-      // Roughly one revolution every 29–39 seconds, gently following the
-      // smoothed music level without transient kicks or phase jumps.
-      this.tubeRotation = (this.tubeRotation + dt * (.16 + this.audio.w * .06)) % TAU;
+    if (dt > 0) {
+      // Torus retains its gentle tube rotation. Plasma gets a stronger
+      // corkscrew plus a separate, smooth flying-camera orientation.
+      const spinSpeed = this.style === "checker" ? .16 + this.audio.w * .06 : .22 + this.audio.w * .10;
+      this.tubeRotation = (this.tubeRotation + dt * spinSpeed) % TAU;
+      if (this.style === "plasma") {
+        this.motionTime += dt * (.75 + this.audio.w * .25);
+        this.roll = (this.roll + dt * (.07 + this.audio.y * .025)) % TAU;
+      }
     }
     this.uniforms.uTubeRotation.value = this.tubeRotation;
     this.pulse += (THREE.MathUtils.clamp(audio.beat || 0, 0, 1) - this.pulse) * (1 - Math.exp(-dt * 9));
@@ -214,6 +220,23 @@ export class EndlessTunnel {
     const angle = this.startAngle + THREE.MathUtils.euclideanModulo(this.distance / TUNNEL_RADIUS, TAU);
     tunnelCenter(angle, this.camera.position);
     tunnelCenter(angle + .12, this.look);
+    if (this.style === "plasma") {
+      // Stay well inside the tube: gently weave around its centreline while
+      // looking upward and sweeping left/right. Integrated phase avoids
+      // abrupt steering when a loud beat changes the audio level.
+      const phase = this.motionTime;
+      const offset = Math.sin(phase * .27) * .35;
+      this.camera.position.x += Math.cos(angle) * offset;
+      this.camera.position.z += Math.sin(angle) * offset;
+      this.camera.position.y = Math.sin(phase * .21) * .22;
+      this.sway = Math.sin(phase * .40) * .85;
+      this.lift = .45 + Math.sin(phase * .31) * .35;
+      this.look.x += Math.cos(angle) * this.sway;
+      this.look.z += Math.sin(angle) * this.sway;
+      this.look.y = this.camera.position.y + this.lift;
+      this.bank = this.roll + Math.sin(phase * .32) * .22;
+    }
     this.camera.up.set(0, 1, 0); this.camera.lookAt(this.look);
+    if (this.style === "plasma") this.camera.rotateZ(this.bank);
   }
 }

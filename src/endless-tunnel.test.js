@@ -73,14 +73,16 @@ describe("endless torus geometry", () => {
 });
 
 describe("endless tunnel motion", () => {
-  it("rotates only the Torus tube while keeping its camera path and beat tiles intact", () => {
+  it("retains Torus tube rotation and its upright camera independently of plasma motion", () => {
     const renderer = { getRenderTarget: () => null, setRenderTarget() {}, render() {} };
     const spectrum = new THREE.Texture(), scenes = new ProceduralScenes(renderer, spectrum, 42);
     scenes.render(4, {}, .05, 0, [], false);
     scenes.render(13, {}, .05, 0, [], false);
     const torus = scenes.entries.get(4).tunnel, plasma = scenes.entries.get(13).tunnel;
     expect(torus.uniforms.uTubeRotation.value).toBeCloseTo(.008);
-    expect(plasma.uniforms.uTubeRotation.value).toBe(0);
+    expect(plasma.uniforms.uTubeRotation.value).toBeCloseTo(.011);
+    expect(torus.roll).toBe(0);
+    expect(plasma.roll).toBeGreaterThan(0);
     expect(torus.camera.position.length()).toBeCloseTo(TUNNEL_RADIUS);
     expect(torus.camera.up.toArray()).toEqual([0, 1, 0]);
     expect(torus.mesh.material.vertexShader).toContain('float rolled = v + uTubeRotation;');
@@ -143,6 +145,48 @@ describe("endless tunnel motion", () => {
     const tunnel = new EndlessTunnel(scene, camera, spectrum, seededRandom(42));
     return { tunnel, camera, dispose() { tunnel.mesh.geometry.dispose(); tunnel.mesh.material.dispose(); spectrum.dispose(); } };
   }
+  it("spins the plasma tube, lifts its view and sweeps smoothly to both sides", () => {
+    const { tunnel, camera, dispose } = setup();
+    let left = 0, right = 0, maxOffset = 0;
+    for (let i = 0; i < 1800; i++) {
+      const orientation = camera.quaternion.clone();
+      tunnel.update({ level: .6, mid: .5, bass: .5, beat: i % 30 === 0 ? 1 : 0 }, 1 / 30, 0);
+      left = Math.min(left, tunnel.sway); right = Math.max(right, tunnel.sway);
+      const radialOffset = Math.hypot(camera.position.x, camera.position.z) - TUNNEL_RADIUS;
+      maxOffset = Math.max(maxOffset, Math.hypot(radialOffset, camera.position.y));
+      expect(tunnel.lift).toBeGreaterThanOrEqual(.1 - 1e-10);
+      expect(tunnel.lift).toBeLessThanOrEqual(.8);
+      expect(camera.quaternion.toArray().every(Number.isFinite)).toBe(true);
+      expect(orientation.angleTo(camera.quaternion)).toBeLessThan(.03);
+    }
+    expect(left).toBeLessThan(-.8); expect(right).toBeGreaterThan(.8);
+    expect(tunnel.roll).toBeGreaterThan(4);
+    expect(tunnel.tubeRotation).toBeGreaterThan(0);
+    expect(maxOffset).toBeLessThan(.42);
+    expect(tunnel.distance).toBeGreaterThan(280);
+    dispose();
+  });
+  it("keeps plasma spin and steering frame-rate independent and frozen at zero delta", () => {
+    const a = setup(), b = setup();
+    for (let i = 0; i < 300; i++) a.tunnel.update({}, 1 / 30, 0);
+    for (let i = 0; i < 1200; i++) b.tunnel.update({}, 1 / 120, 0);
+    expect(a.tunnel.tubeRotation).toBeCloseTo(2.2, 8);
+    expect(a.tunnel.roll).toBeCloseTo(.7, 8);
+    expect(a.tunnel.motionTime).toBeCloseTo(b.tunnel.motionTime, 8);
+    expect(a.camera.quaternion.angleTo(b.camera.quaternion)).toBeLessThan(1e-7);
+    const before = [a.tunnel.motionTime, a.tunnel.tubeRotation, a.tunnel.roll, ...a.camera.position.toArray(), ...a.camera.quaternion.toArray()];
+    a.tunnel.update({ level: 1, bass: 1, mid: 1, beat: 1 }, 0, 0);
+    expect([a.tunnel.motionTime, a.tunnel.tubeRotation, a.tunnel.roll, ...a.camera.position.toArray(), ...a.camera.quaternion.toArray()]).toEqual(before);
+    a.tunnel.update({ level: 1, mid: 1 }, 100, 0);
+    expect(a.tunnel.tubeRotation - before[1]).toBeLessThan(.0161);
+    a.tunnel.roll = Math.PI * 2 - .001;
+    a.tunnel.update({}, 0, 0);
+    const seamOrientation = a.camera.quaternion.clone();
+    a.tunnel.update({}, 1 / 60, 0);
+    expect(a.tunnel.roll).toBeLessThan(.002);
+    expect(seamOrientation.angleTo(a.camera.quaternion)).toBeLessThan(.01);
+    a.dispose(); b.dispose();
+  });
   it("travels forward at a frame-rate independent speed, including across the loop seam", () => {
     const a = setup(), b = setup();
     const geometry = a.tunnel.mesh.geometry;

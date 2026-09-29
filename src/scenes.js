@@ -13,7 +13,7 @@ export const scenes = [
   { renderMode: 10, title: "Arc", theme: "ELECTRIC ORBIT", description: "Charged rings ignite spectral smoke around the high end." },
   { renderMode: 11, title: "Crystals", theme: "NEON FORMATIONS", description: "Cyan and magenta crystal edges pulse through Spirit particles and flowing aurora." },
   { renderMode: 12, title: "Neon Road", theme: "MIDNIGHT DRIVE", description: "Follow a winding neon highway into a striped synthwave sunset." },
-  { renderMode: 13, title: "Tunnel", theme: "ENDLESS PLASMA", description: "Fly through a seamless toroidal tunnel, its plasma walls breathing with the music." },
+  { renderMode: 13, title: "Tunnel", theme: "ENDLESS PLASMA", description: "Corkscrew through rotating plasma walls, banking upward and sweeping left and right." },
   { renderMode: 14, title: "Flyover", theme: "NEON FRONTIER", description: "Race above neon mountain grids and luminous waterways beneath a striped synthwave sunset." },
   { renderMode: 15, title: "Geiss Flow", theme: "LIQUID FEEDBACK", description: "The waveform becomes flowing neon trails, spiralling through beat-shaped vortices." },
 ].map((scene, index) => ({ ...scene, kicker: `SCENE ${String(index + 1).padStart(2, "0")} / ${scene.theme}` }));
