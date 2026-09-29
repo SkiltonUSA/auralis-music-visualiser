@@ -11,7 +11,7 @@ export const scenes = [
   { renderMode: 8, title: "Horizon", theme: "SPECTRUM CITY", description: "Frequency towers rise above glowing sound waves flowing towards you." },
   { renderMode: 9, title: "Radial", theme: "EXTRUDED ARRAY", description: "Spectrum blocks rotate through a deep circular chamber." },
   { renderMode: 10, title: "Arc", theme: "ELECTRIC ORBIT", description: "Charged rings ignite spectral smoke around the high end." },
-  { renderMode: 11, title: "Crystals", theme: "PROCEDURAL FORMATIONS", description: "Frequency-shaped quartz turns before flowing, music-driven aurora curtains." },
+  { renderMode: 11, title: "Crystals", theme: "NEON FORMATIONS", description: "Cyan and magenta crystal edges pulse through Spirit particles and flowing aurora." },
   { renderMode: 12, title: "Neon Road", theme: "MIDNIGHT DRIVE", description: "Follow a winding neon highway into a striped synthwave sunset." },
   { renderMode: 13, title: "Tunnel", theme: "ENDLESS PLASMA", description: "Fly through a seamless toroidal tunnel, its plasma walls breathing with the music." },
   { renderMode: 14, title: "Flyover", theme: "NEON FRONTIER", description: "Race above neon mountain grids and luminous waterways beneath a striped synthwave sunset." },

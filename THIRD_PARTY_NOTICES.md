@@ -155,6 +155,41 @@ assets are copied or distributed here: `src/horizon-ascii.js` is an original
 GPU implementation with locally authored pixel glyphs. Roomtone's Jev/TypeSafe
 integration is not used; analysis and rendering remain local.
 
+## The Spirit
+
+Crystals' surrounding particle cloud adapts GPU position/lifetime ping-pong,
+curl advection and the 4D simplex-noise derivative helper from
+[The Spirit](https://github.com/edankwan/The-Spirit) by Edan Kwan, commit
+`c2ed239be0d7ed4ba28acf42dae42de994d37b8a`:
+`src/3d/simulator.js`, `src/glsl/position.frag`,
+`src/glsl/helpers/curl4.glsl` and `simplexNoiseDerivatives4.glsl`.
+The port lives in `src/crystal-spirit.js` and `src/spirit-curl.js`.
+Crystal-safe emitters, audio modulation, soft point rendering and quality/lifecycle
+handling are new. The original application's UI, triangle-particle renderer,
+shadow system, bundled Three.js and build dependencies are not included.
+
+The MIT License (MIT)
+
+Copyright (c) 2015 Edan Kwan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ## Astrofox
 
 The temporal feedback, radial lens warp, LED sampling, and bass-glow treatments in Auralis were adapted from techniques in [Astrofox](https://github.com/astrofox-io/astrofox).

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import * as THREE from "three";
 import { CrystalBeatGrowth } from "./crystal-atmosphere.js";
+import { createNeonCrystalMaterial, CRYSTAL_NEON_PALETTES } from "./neon-crystals.js";
 import { seededRandom, createCrystalGeometry, createCrystalLayout, createAuroraGeometry, addAuroraCurtains, ProceduralScenes, isProceduralMode } from "./procedural-scenes.js";
 
 describe("procedural generation", () => {
@@ -82,7 +83,7 @@ describe("procedural scene lifecycle", () => {
   it("reshapes crystal instances from the spectrum without moving their anchors", () => {
     const { worlds } = setup();
     const layout = createCrystalLayout(123, 1), geometry = createCrystalGeometry();
-    const material = new THREE.MeshPhysicalMaterial();
+    const material = createNeonCrystalMaterial(new THREE.Vector4());
     const crystals = new THREE.InstancedMesh(geometry, material, layout.length);
     const entry = { crystals, material, layout, anchor: new THREE.Group(), camera: new THREE.PerspectiveCamera(),
       audio: new THREE.Vector4(), age: 4, time: 0 };
@@ -100,7 +101,7 @@ describe("procedural scene lifecycle", () => {
     worlds.update(entry, audio, .016, 1, new Uint8Array(256).fill(255));
     expect(entry.materials[0].uniforms.uTime.value).toBe(entry.time);
     expect(entry.materials[0].uniforms.uAudio.value.x).toBeGreaterThan(0);
-    expect(entry.materials[0].uniforms.uHem.value.getHex()).toBe(0xffcf78);
+    expect(entry.materials[0].uniforms.uHem.value.getHex()).toBe(CRYSTAL_NEON_PALETTES[1][0]);
     new Set(entry.curtains.map((m) => m.geometry)).forEach((g) => g.dispose());
     entry.materials.forEach((m) => m.dispose());
     geometry.dispose(); material.dispose(); crystals.dispose(); worlds.dispose();
@@ -123,7 +124,7 @@ describe("procedural scene lifecycle", () => {
   });
   it("grows crystal instances on beats while the globe and shard anchors stay fixed", () => {
     const { worlds } = setup();
-    const layout = createCrystalLayout(42, 1), geometry = createCrystalGeometry(42), material = new THREE.MeshPhysicalMaterial();
+    const layout = createCrystalLayout(42, 1), geometry = createCrystalGeometry(42), material = createNeonCrystalMaterial(new THREE.Vector4());
     const crystals = new THREE.InstancedMesh(geometry, material, layout.length);
     const entry = { crystals, material, layout, anchor: new THREE.Group(), camera: new THREE.PerspectiveCamera(),
       audio: new THREE.Vector4(0, 0, 0, 0), age: 4, time: 0, beatGrowth: new CrystalBeatGrowth() };

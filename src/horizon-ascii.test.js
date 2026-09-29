@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { ASCII_GLYPHS, ASCII_TILE, createHorizonAsciiAtlas, horizonAsciiGrid } from "./horizon-ascii.js";
+import { ASCII_GLYPHS, ASCII_TILE, createHorizonAsciiAtlas, horizonAsciiGrid, horizonAsciiGLSL } from "./horizon-ascii.js";
 
 describe("Horizon ASCII backdrop", () => {
+  it("runs every plasma motion layer at triple speed using the pause-aware scene clock", () => {
+    expect(horizonAsciiGLSL).toContain('float plasmaTime = t * 3.;');
+    for (const layer of ['drift', 'fold', 'mist']) {
+      const expression = horizonAsciiGLSL.match(new RegExp(`float ${layer} = ([^;]+);`))[1];
+      expect(expression).toContain('plasmaTime');
+      expect(expression).not.toMatch(/\bt\s*\*/);
+    }
+    expect(horizonAsciiGLSL).toContain('vec2 lattice = vUv * uHorizonAsciiGrid;');
+  });
   it("builds a small, deterministic, single-channel atlas with an empty first glyph", () => {
     const atlas = createHorizonAsciiAtlas(), second = createHorizonAsciiAtlas();
     const { data, width, height } = atlas.image;

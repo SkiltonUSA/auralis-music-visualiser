@@ -1,4 +1,5 @@
 import p5 from "p5";
+import { createValleyParticles, projectValleyParticle } from "./valley-particles.js";
 
 const SPRING_POINTS = 96;
 const BAR_COUNT = 54;
@@ -8,6 +9,8 @@ export class ParticleOverlay {
     this.audio = null; this.mode = 0; this.palette = 0; this.visible = true; this.radialAngle = 0;
     this.density = Math.min(window.devicePixelRatio, 1.35);
     this.ready = false; this.frame = 0; this.flash = 0;
+    this.sceneTime = 0;
+    this.valleyParticles = createValleyParticles();
     this.waveSprings = Array.from({ length: SPRING_POINTS }, () => ({ position: 0, velocity: 0 }));
     this.waveHistory = [];
     this.barPeaks = new Float32Array(BAR_COUNT);
@@ -160,7 +163,25 @@ export class ParticleOverlay {
     p.endShape();
   }
 
+  drawValleyParticles(p, audio) {
+    const high = Number.isFinite(audio.high) ? audio.high : 0;
+    const beat = Number.isFinite(audio.beat) ? audio.beat : 0;
+    for (const particle of this.valleyParticles) {
+      const point = projectValleyParticle(particle, this.sceneTime, p.width, p.height);
+      const alpha = point.opacity * (110 + high * 65 + beat * 20);
+      p.stroke(this.color(p, alpha * .45, particle.tint));
+      p.strokeWeight(Math.max(.45, point.size * .45));
+      p.line(point.tailX, point.tailY, point.x, point.y);
+      p.noStroke();
+      p.fill(this.color(p, alpha * .15, particle.tint));
+      p.circle(point.x, point.y, point.size * 2.8);
+      p.fill(this.color(p, alpha, particle.tint));
+      p.circle(point.x, point.y, point.size);
+    }
+  }
+
   drawParticles(p, audio, cx, cy, scale, now) {
+    if (this.mode === 6) return this.drawValleyParticles(p, audio);
     const bass = Number.isFinite(audio.bass) ? audio.bass : 0;
     const high = Number.isFinite(audio.high) ? audio.high : 0;
     const beat = Number.isFinite(audio.beat) ? audio.beat : 0;
@@ -207,5 +228,8 @@ export class ParticleOverlay {
     this.frame += 1;
   }
 
-  render(audio, radialAngle = 0) { this.audio = audio; this.radialAngle = radialAngle; this.sketch.redraw(); }
+  render(audio, radialAngle = 0, sceneTime = 0) {
+    this.audio = audio; this.radialAngle = radialAngle; this.sceneTime = sceneTime;
+    this.sketch.redraw();
+  }
 }

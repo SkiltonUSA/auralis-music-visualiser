@@ -1,5 +1,30 @@
 # Auralis — implementation and creative references
 
+## Crystals: neon facets and Spirit particle cloud
+
+The formation uses dark, opaque facets with anti-aliased cyan/magenta edge glow,
+plus a subdued low-poly wireframe core. Barycentric edge masks omit internal
+quad diagonals, with faces and edges rendered in one instanced draw. Beat-grown
+shards retain their fixed anchors; the glow responds to growth and treble. All
+four palettes coordinate the crystals, Spirit cloud and aurora. This replaces
+the pale glass material and its environment-map/transmission passes, while
+retaining the shared HDR bloom and depth-tested smoke.
+
+Crystals now includes a depth-tested curl-noise particle cloud adapted from
+[Edan Kwan's The Spirit](https://github.com/edankwan/The-Spirit). Three moving
+emitters form smoky streams around the globe. Bass widens the cloud, mids stir
+the curl field, treble adds fine sparkle, and detected beats impart a gentle
+outward pulse. The centre is kept clear; the existing fixed-height, slowly
+rotating globe, beat-grown shards, aurora and grey smoke remain unchanged.
+
+Two reusable 128 × 128 floating-point textures store positions and lifetimes.
+Auto / High / Ultra draw 8,192 / 12,288 / 16,384 particles respectively; quality
+and viewport changes reuse the same history. Only visible Crystals scenes
+advance the simulation, including outgoing blends. Pause freezes it, and all
+owned GPU resources are released on scene disposal. Without float-render-target
+support, only this added layer is omitted. The adapted shader sources and MIT
+notice are recorded in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+
 For setup, the tech stack and the screenshot gallery, see the [main README](../README.md).
 
 Auralis is a real-time, microphone-reactive music visualiser for the browser. It combines a custom Three.js/WebGL shader engine with a p5.js particle and waveform layer to create mirrored light sculptures, crystalline shapes, harmonic rings, and spectrum bars.

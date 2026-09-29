@@ -1,9 +1,10 @@
 import * as THREE from "three";
-import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { CrystalBeatGrowth, CrystalSmokeVeils } from "./crystal-atmosphere.js";
 import { NeonRoad } from "./neon-road.js";
 import { EndlessTunnel } from "./endless-tunnel.js";
 import { TerrainFlyover } from "./terrain-flyover.js";
+import { CrystalSpirit } from "./crystal-spirit.js";
+import { addCrystalEdgeAttributes, createNeonCrystalMaterial, updateNeonCrystalMaterial, CRYSTAL_NEON_PALETTES } from "./neon-crystals.js";
 
 // Crystal facets/materials and aurora fold-light equations adapted from
 // GeometryPainterThreeJS (MIT), 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1.
@@ -195,29 +196,20 @@ export class ProceduralScenes {
       return entry;
     }
     scene.add(stars(seed));
-    scene.add(new THREE.HemisphereLight(0xa4bcff, 0x080512, 1.1));
-    const key = new THREE.DirectionalLight(0xd6e9ff, 3); key.position.set(-4, 6, 5); scene.add(key);
-    const rim = new THREE.DirectionalLight(0xc36cff, 3); rim.position.set(4, 1, -3); scene.add(rim);
     if (mode === 11) {
-      const room = new RoomEnvironment(), pmrem = new THREE.PMREMGenerator(this.renderer);
-      entry.environment = pmrem.fromScene(room, .04); scene.environment = entry.environment.texture;
-      room.dispose(); pmrem.dispose();
       entry.anchor = new THREE.Group(); scene.add(entry.anchor);
-      const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.67, 3), new THREE.MeshStandardMaterial({
-        color: 0x171027, metalness: .45, roughness: .38, flatShading: true,
-      }));
+      entry.coreMaterial = createNeonCrystalMaterial(entry.audio, true);
+      const core = new THREE.Mesh(addCrystalEdgeAttributes(new THREE.IcosahedronGeometry(1.67, 1)), entry.coreMaterial);
       entry.anchor.add(core);
       entry.layout = createCrystalLayout(seed);
-      entry.material = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: .12, metalness: .08,
-        transmission: .35, thickness: .45, ior: 1.55, attenuationColor: 0x9255df, attenuationDistance: 1.2,
-        iridescence: .4, clearcoat: .7, envMapIntensity: 1.5, emissive: 0x773ac0, emissiveIntensity: .1,
-      });
-      entry.crystals = new THREE.InstancedMesh(createCrystalGeometry(seed), entry.material, entry.layout.length);
+      entry.material = createNeonCrystalMaterial(entry.audio);
+      entry.crystals = new THREE.InstancedMesh(addCrystalEdgeAttributes(createCrystalGeometry(seed), true), entry.material, entry.layout.length);
       entry.crystals.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       entry.crystals.frustumCulled = false;
       entry.anchor.add(entry.crystals);
       entry.beatGrowth = new CrystalBeatGrowth();
       entry.smokeVeils = new CrystalSmokeVeils(scene, seededRandom(seed ^ 0x5a17));
+      entry.spirit = new CrystalSpirit(this.renderer, scene, seededRandom(seed ^ 0x771a));
     }
     Object.assign(entry, addAuroraCurtains(scene, entry.audio, this.spectrum, seed, true));
     this.entries.set(mode, entry); this.sizeEntry(entry);
@@ -228,6 +220,7 @@ export class ProceduralScenes {
     const cap = { auto: 1000, high: 1400, ultra: 1800 }[this.quality] || 1000;
     const ratio = Math.min(1, cap / Math.max(this.width, this.height));
     entry.target.setSize(Math.max(2, Math.round(this.width * ratio)), Math.max(2, Math.round(this.height * ratio)));
+    entry.spirit?.setQuality(this.quality, entry.target.height);
     entry.camera.aspect = this.width / Math.max(1, this.height); entry.camera.updateProjectionMatrix();
     if (entry.crystals) entry.crystals.count = { auto: 160, high: 240, ultra: 320 }[this.quality] || 160;
     const curtainCount = { auto: 2, high: 4, ultra: 6 }[this.quality] || 2;
@@ -248,7 +241,8 @@ export class ProceduralScenes {
       entry.audio.setComponent(i, THREE.MathUtils.lerp(entry.audio.getComponent(i), value, ease));
     });
     entry.age += dt; entry.time += dt * (.24 + entry.audio.w * .85);
-    const colors = palettes[palette] || palettes[0];
+    const scheme = entry.crystals ? CRYSTAL_NEON_PALETTES : palettes;
+    const colors = scheme[palette] || scheme[0];
     // The crystal backdrop shares the formation's smoothed audio and clock.
     for (const material of entry.materials || []) {
       material.uniforms.uTime.value = entry.time;
@@ -258,14 +252,13 @@ export class ProceduralScenes {
       entry.anchor.position.y = 0;
       const beatGrowth = entry.beatGrowth?.update(audio, dt) || 0;
       entry.smokeVeils?.update(dt, entry.audio.w);
-      const tint = palette === 0 ? 0xae71ed : colors[1];
+      entry.spirit?.update(audio, dt, colors);
       // A steady, slow turn (one revolution in ~157 seconds), independent of
       // musical energy. Beats affect shard growth, never globe motion.
       entry.anchor.rotation.y += dt * .04;
       entry.anchor.rotation.z = .04;
-      entry.material.emissive.setHex(tint);
-      entry.material.emissiveIntensity = .05 + entry.audio.z * .35;
-      entry.material.attenuationColor.setHex(tint);
+      updateNeonCrystalMaterial(entry.material, colors, entry.time, beatGrowth);
+      if (entry.coreMaterial) updateNeonCrystalMaterial(entry.coreMaterial, colors, entry.time, beatGrowth * .35);
       for (let i = 0; i < entry.crystals.count; i++) {
         const crystal = entry.layout[i];
         const bin = (spectrum[crystal.band] || 0) / 255;
@@ -278,7 +271,7 @@ export class ProceduralScenes {
         this.scale.set(width, height, width);
         this.matrix.compose(crystal.position, crystal.rotation, this.scale);
         entry.crystals.setMatrixAt(i, this.matrix);
-        this.color.setHex(tint).offsetHSL((crystal.hue - .5) * .13, .05, .08 + bin * .08);
+        this.color.copy(entry.material.uniforms.uEdgeA.value).lerp(entry.material.uniforms.uEdgeB.value, crystal.hue);
         entry.crystals.setColorAt(i, this.color);
       }
       entry.crystals.instanceMatrix.needsUpdate = true;
@@ -302,6 +295,9 @@ export class ProceduralScenes {
   dispose() {
     const geometries = new Set(), materials = new Set();
     for (const entry of this.entries.values()) {
+      // Spirit owns its simulation targets and removes its Points before the
+      // shared traversal, so no GPU resource is disposed twice.
+      entry.spirit?.dispose();
       entry.scene.traverse((object) => {
         if (object.geometry) geometries.add(object.geometry);
         if (object.material) materials.add(object.material);

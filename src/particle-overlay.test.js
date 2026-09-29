@@ -25,6 +25,23 @@ describe("scene-specific overlay visibility", () => {
     expect(overlay.drawSpringMesh).toHaveBeenCalledOnce();
     expect(overlay.drawSegmentedSpectrum).toHaveBeenCalledOnce();
   });
+  it("routes Valley stars to upward perspective motion instead of the shared orbit", () => {
+    const overlay = Object.assign(Object.create(ParticleOverlay.prototype), {
+      mode: 6, drawValleyParticles: vi.fn(),
+    });
+    const p = {}, audio = { high: .2, beat: 0 };
+    overlay.drawParticles(p, audio, 640, 400, 800, 999999);
+    expect(overlay.drawValleyParticles).toHaveBeenCalledExactlyOnceWith(p, audio);
+  });
+  it("passes the pause-aware scene clock to Valley on each redraw", () => {
+    const overlay = Object.assign(Object.create(ParticleOverlay.prototype), { sketch: { redraw: vi.fn() } });
+    const audio = {};
+    overlay.render(audio, .4, 12);
+    expect(overlay.sceneTime).toBe(12);
+    expect(overlay.radialAngle).toBe(.4);
+    expect(overlay.audio).toBe(audio);
+    expect(overlay.sketch.redraw).toHaveBeenCalledOnce();
+  });
   it("blends both overlays but advances shared audio motion only once", () => {
     const { overlay, p } = setup(0);
     const drawn = [];

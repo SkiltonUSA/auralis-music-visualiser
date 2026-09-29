@@ -53,9 +53,12 @@ export const horizonAsciiGLSL = /* glsl */ `
     vec2 q = (cell + .5) / uHorizonAsciiGrid;
     vec2 fieldPoint = vec2((q.x - .5) * uResolution.x / uResolution.y, q.y);
     // The field flows under a stationary character grid, so marks stay upright.
-    float drift = sin(fieldPoint.x * 5.4 + t * .19 + sin(q.y * 7. - t * .11));
-    float fold = sin(fieldPoint.x * 3.2 - q.y * 8.3 - t * .14);
-    float mist = noise(fieldPoint * 3.4 + vec2(t * .035, -t * .025));
+    // Speed up only the plasma; the shared scene clock still controls pause
+    // and blending without accelerating the skyline or travelling floor.
+    float plasmaTime = t * 3.;
+    float drift = sin(fieldPoint.x * 5.4 + plasmaTime * .19 + sin(q.y * 7. - plasmaTime * .11));
+    float fold = sin(fieldPoint.x * 3.2 - q.y * 8.3 - plasmaTime * .14);
+    float mist = noise(fieldPoint * 3.4 + vec2(plasmaTime * .035, -plasmaTime * .025));
     float band = spectrumAt(.08 + q.x * .82);
     float field = smoothstep(.32, .84, .43 + drift * .20 + fold * .13 + mist * .14 + band * .09);
     float density = clamp(field * (.78 + uLevel * .18 + band * .12), 0., 1.) * 7.;

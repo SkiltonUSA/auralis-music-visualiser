@@ -44,6 +44,7 @@ export function tunnelCenter(angle, out = new THREE.Vector3()) {
 
 const vertexShader = /* glsl */ `
   uniform float uTime, uPulse;
+  uniform float uTubeRotation;
   uniform float uChecker;
   uniform vec4 uAudio;
   uniform sampler2D uSpectrum;
@@ -58,9 +59,15 @@ const vertexShader = /* glsl */ `
     float breathe = uAudio.x * .35 + uPulse * .16;
     float detail = wave * (.08 + uAudio.y * .22) + band * .18;
     float pinch = cos(v * 4. + u * 2.) * (.16 + uAudio.y * .24) * uChecker;
-    vec3 p = position + normal * (breathe + detail + pinch);
+    // Rotate the tube around its own curved centreline, not the camera.
+    // UVs stay attached to the surface, so checker tiles, ribs and beat
+    // flashes turn together while forward travel remains unchanged.
+    float rolled = v + uTubeRotation;
+    vec3 tubeNormal = vec3(cos(rolled) * cos(u), sin(rolled), cos(rolled) * sin(u));
+    vec3 center = vec3(cos(u), 0., sin(u)) * ${TUNNEL_RADIUS.toFixed(1)};
+    vec3 p = center + tubeNormal * (${TUNNEL_WIDTH.toFixed(1)} + breathe + detail + pinch);
     vec4 view = modelViewMatrix * vec4(p, 1.);
-    vView = view.xyz; vNormal = normalMatrix * normal;
+    vView = view.xyz; vNormal = normalMatrix * tubeNormal;
     gl_Position = projectionMatrix * view;
   }
 `;
@@ -174,8 +181,9 @@ export class EndlessTunnel {
     this.tileFlash = new CheckerBeatFlash();
     this.camera = camera; this.startAngle = random() * TAU;
     this.distance = 0; this.time = 0; this.speed = 4.8; this.pulse = 0;
+    this.tubeRotation = 0;
     this.audio = new THREE.Vector4(0, 0, 0, 0); this.look = new THREE.Vector3();
-    this.uniforms = { uTime: { value: 0 }, uPulse: { value: 0 }, uTileFlash: { value: 0 }, uChecker: { value: style === "checker" ? 1 : 0 }, uAudio: { value: this.audio },
+    this.uniforms = { uTime: { value: 0 }, uTubeRotation: { value: 0 }, uPulse: { value: 0 }, uTileFlash: { value: 0 }, uChecker: { value: style === "checker" ? 1 : 0 }, uAudio: { value: this.audio },
       uSpectrum: { value: spectrum }, uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uC: { value: new THREE.Color() } };
     this.mesh = new THREE.Mesh(createTunnelGeometry(), new THREE.ShaderMaterial({
       vertexShader, fragmentShader, uniforms: this.uniforms, side: THREE.BackSide }));
@@ -191,6 +199,12 @@ export class EndlessTunnel {
     const targetSpeed = 4.8 + this.audio.w * 2.8 + this.audio.x * .8;
     this.speed += (targetSpeed - this.speed) * (1 - Math.exp(-dt * .85));
     this.distance += dt * this.speed; this.time += dt;
+    if (this.style === "checker" && dt > 0) {
+      // Roughly one revolution every 29–39 seconds, gently following the
+      // smoothed music level without transient kicks or phase jumps.
+      this.tubeRotation = (this.tubeRotation + dt * (.16 + this.audio.w * .06)) % TAU;
+    }
+    this.uniforms.uTubeRotation.value = this.tubeRotation;
     this.pulse += (THREE.MathUtils.clamp(audio.beat || 0, 0, 1) - this.pulse) * (1 - Math.exp(-dt * 9));
     this.uniforms.uTime.value = this.time; this.uniforms.uPulse.value = this.pulse;
     this.uniforms.uTileFlash.value = this.style === "checker" ? this.tileFlash.update(audio, dt) : 0;

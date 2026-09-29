@@ -206,7 +206,7 @@ function animate(now) {
     { mode: visual.mode, palette: visual.palette, weight: visual.blend.weight },
   ] : [{ mode: visual.mode, palette: visual.palette, weight: 1 }]);
   const particleInterval = renderQuality === "ultra" ? 1000 / 60 : 1000 / 45;
-  if (!paused && (visual.blend.active || now - lastParticleFrame >= particleInterval)) { particles.render(state, visual.radialMotion.angle); lastParticleFrame = now; }
+  if (!paused && (visual.blend.active || now - lastParticleFrame >= particleInterval)) { particles.render(state, visual.radialMotion.angle, visual.elapsed); lastParticleFrame = now; }
   if (now - lastUiUpdate >= 66) { updateTelemetry(state, performance); lastUiUpdate = now; }
   requestAnimationFrame(animate);
 }

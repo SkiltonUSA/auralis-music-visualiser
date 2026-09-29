@@ -73,6 +73,46 @@ describe("endless torus geometry", () => {
 });
 
 describe("endless tunnel motion", () => {
+  it("rotates only the Torus tube while keeping its camera path and beat tiles intact", () => {
+    const renderer = { getRenderTarget: () => null, setRenderTarget() {}, render() {} };
+    const spectrum = new THREE.Texture(), scenes = new ProceduralScenes(renderer, spectrum, 42);
+    scenes.render(4, {}, .05, 0, [], false);
+    scenes.render(13, {}, .05, 0, [], false);
+    const torus = scenes.entries.get(4).tunnel, plasma = scenes.entries.get(13).tunnel;
+    expect(torus.uniforms.uTubeRotation.value).toBeCloseTo(.008);
+    expect(plasma.uniforms.uTubeRotation.value).toBe(0);
+    expect(torus.camera.position.length()).toBeCloseTo(TUNNEL_RADIUS);
+    expect(torus.camera.up.toArray()).toEqual([0, 1, 0]);
+    expect(torus.mesh.material.vertexShader).toContain('float rolled = v + uTubeRotation;');
+    expect(torus.mesh.material.vertexShader).toContain('vUv = uv;');
+    expect(torus.mesh.material.vertexShader).toContain('vNormal = normalMatrix * tubeNormal;');
+    scenes.render(4, { transient: true, beatCount: 1, bass: 1 }, .05, 0, [], false);
+    expect(torus.uniforms.uTileFlash.value).toBe(1);
+    expect(torus.uniforms.uTubeRotation.value).toBeGreaterThan(.008);
+    const angle = torus.tubeRotation;
+    scenes.render(4, { level: 1 }, 10, 0, [], true);
+    expect(torus.tubeRotation).toBe(angle);
+    scenes.render(13, {}, .05, 0, [], false);
+    expect(torus.tubeRotation).toBe(angle);
+    scenes.dispose(); spectrum.dispose();
+  });
+  it("integrates tube rotation consistently across frame rates and wraps a full turn", () => {
+    const spectrum = new THREE.Texture();
+    const make = () => new EndlessTunnel(new THREE.Scene(), new THREE.PerspectiveCamera(), spectrum, seededRandom(42), 'checker');
+    const a = make(), b = make();
+    for (let i = 0; i < 300; i++) a.update({}, 1 / 30, 0);
+    for (let i = 0; i < 1200; i++) b.update({}, 1 / 120, 0);
+    expect(a.tubeRotation).toBeCloseTo(1.6, 8);
+    expect(a.tubeRotation).toBeCloseTo(b.tubeRotation, 8);
+    a.tubeRotation = Math.PI * 2 - .001;
+    a.update({}, 1 / 60, 0);
+    expect(a.tubeRotation).toBeCloseTo(.16 / 60 - .001, 8);
+    const before = a.tubeRotation;
+    a.update({ level: 1, beat: 1 }, 100, 0);
+    expect(a.tubeRotation - before).toBeLessThanOrEqual(.011);
+    for (const tunnel of [a, b]) { tunnel.mesh.geometry.dispose(); tunnel.mesh.material.dispose(); }
+    spectrum.dispose();
+  });
   it("gives Torus enclosed checker walls while retaining a separate plasma tunnel", () => {
     const renderer = { getRenderTarget: () => null, setRenderTarget() {}, render() {} };
     const spectrum = new THREE.Texture();
