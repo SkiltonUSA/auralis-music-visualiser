@@ -122,4 +122,3 @@ vec3 spiritCurl(vec3 p, float time) {
   return vec3(dz.y - dy.z, dx.z - dz.x, dy.x - dx.y);
 }
 `;
-
