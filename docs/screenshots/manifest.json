@@ -1,0 +1,129 @@
+{
+  "capturedAt": "2026-09-29T16:45:34.208Z",
+  "source": "Built-in demo signal; live browser rendering, visual-only mode",
+  "width": 1280,
+  "height": 800,
+  "quality": "high",
+  "captures": [
+    {
+      "scene": 1,
+      "title": "Bloom",
+      "renderMode": 0,
+      "file": "01-bloom.jpg",
+      "mode": 0,
+      "renderedSeconds": 4.283995025502054
+    },
+    {
+      "scene": 2,
+      "title": "Prism",
+      "renderMode": 1,
+      "file": "02-prism.jpg",
+      "mode": 1,
+      "renderedSeconds": 2.8443559868069634
+    },
+    {
+      "scene": 3,
+      "title": "Signal",
+      "renderMode": 3,
+      "file": "03-signal.jpg",
+      "mode": 3,
+      "renderedSeconds": 2.8332243456759967
+    },
+    {
+      "scene": 4,
+      "title": "Torus",
+      "renderMode": 4,
+      "file": "04-torus.jpg",
+      "mode": 4,
+      "renderedSeconds": 2.827092744629871
+    },
+    {
+      "scene": 5,
+      "title": "Warp",
+      "renderMode": 5,
+      "file": "05-warp.jpg",
+      "mode": 5,
+      "renderedSeconds": 2.803984405698486
+    },
+    {
+      "scene": 6,
+      "title": "Valley",
+      "renderMode": 6,
+      "file": "06-valley.jpg",
+      "mode": 6,
+      "renderedSeconds": 3.3342988229620687
+    },
+    {
+      "scene": 7,
+      "title": "Reactor",
+      "renderMode": 7,
+      "file": "07-reactor.jpg",
+      "mode": 7,
+      "renderedSeconds": 3.395200697105878
+    },
+    {
+      "scene": 8,
+      "title": "Horizon",
+      "renderMode": 8,
+      "file": "08-horizon.jpg",
+      "mode": 8,
+      "renderedSeconds": 2.8133133809143978
+    },
+    {
+      "scene": 9,
+      "title": "Radial",
+      "renderMode": 9,
+      "file": "09-radial.jpg",
+      "mode": 9,
+      "renderedSeconds": 3.3396808983155637
+    },
+    {
+      "scene": 10,
+      "title": "Arc",
+      "renderMode": 10,
+      "file": "10-arc.jpg",
+      "mode": 10,
+      "renderedSeconds": 3.336718451560163
+    },
+    {
+      "scene": 11,
+      "title": "Crystals",
+      "renderMode": 11,
+      "file": "11-crystals.jpg",
+      "mode": 11,
+      "renderedSeconds": 5.0449963244331855
+    },
+    {
+      "scene": 12,
+      "title": "Neon Road",
+      "renderMode": 12,
+      "file": "12-neon-road.jpg",
+      "mode": 12,
+      "renderedSeconds": 2.835372375327431
+    },
+    {
+      "scene": 13,
+      "title": "Tunnel",
+      "renderMode": 13,
+      "file": "13-tunnel.jpg",
+      "mode": 13,
+      "renderedSeconds": 2.82009512348705
+    },
+    {
+      "scene": 14,
+      "title": "Flyover",
+      "renderMode": 14,
+      "file": "14-flyover.jpg",
+      "mode": 14,
+      "renderedSeconds": 2.8594563449000248
+    },
+    {
+      "scene": 15,
+      "title": "Geiss Flow",
+      "renderMode": 15,
+      "file": "15-geiss-flow.jpg",
+      "mode": 15,
+      "renderedSeconds": 4.045432298660245
+    }
+  ]
+}
