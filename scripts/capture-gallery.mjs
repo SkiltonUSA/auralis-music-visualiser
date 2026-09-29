@@ -36,8 +36,11 @@ try {
   await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
   await send("Page.navigate", { url: appUrl }); await delay(2500);
   await evaluate(`(async () => {
-    await import('/src/main.js');
-    const main = await (await fetch('/src/main.js')).text();
+    // Vite may version the entry URL after edits. Import that exact module to
+    // avoid constructing a second renderer and duplicate animation loop.
+    const mainUrl = [...document.scripts].find(script => script.type === 'module' && script.src.includes('/src/main.js')).src;
+    await import(mainUrl);
+    const main = await (await fetch(mainUrl)).text();
     const { VisualEngine } = await import(main.match(/from "([^\"]*visual-engine[^\"]*)"/)[1]);
     const original = VisualEngine.prototype.render;
     window.gallery = { frames: 0 };

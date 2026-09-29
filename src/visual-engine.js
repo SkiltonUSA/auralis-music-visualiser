@@ -8,6 +8,7 @@ import { SceneBlend } from "./scene-blend.js";
 import { SceneMixer } from "./scene-mixer.js";
 import { HORIZON_COLUMNS, HORIZON_BANDS } from "./horizon-spectrum.js";
 import { createHorizonAsciiAtlas, horizonAsciiGrid, horizonAsciiGLSL } from "./horizon-ascii.js";
+import { HorizonWaves, HORIZON_WAVE_COUNT, HORIZON_WAVE_SAMPLES, horizonWavesGLSL } from "./horizon-waves.js";
 import { GeissFlow, GEISS_MODE } from "./geiss-flow.js";
 
 const vertexShader = /* glsl */ `
@@ -26,6 +27,8 @@ const fragmentShader = /* glsl */ `
   uniform float uHorizonBands[${HORIZON_COLUMNS / 2}];
   uniform sampler2D uHorizonAscii;
   uniform vec2 uHorizonAsciiGrid;
+  uniform sampler2D uHorizonWaveforms;
+  uniform vec4 uHorizonLines[${HORIZON_WAVE_COUNT}];
   uniform float uRadialAngle;
   uniform float uLevel;
   uniform float uBass;
@@ -451,6 +454,7 @@ const fragmentShader = /* glsl */ `
   }
 
   ${horizonAsciiGLSL}
+  ${horizonWavesGLSL}
 
   vec3 horizonScene(vec2 p, float t) {
     vec3 color = vec3(0.);
@@ -476,13 +480,7 @@ const fragmentShader = /* glsl */ `
     float horizonGlow = .009 / (abs(p.y - baseline) + .012);
     color += chroma(.12 + t * .02, horizonGlow * (.09 + uBass * .19));
 
-    float groundDepth = clamp((baseline - p.y) / 1.2, 0., 1.);
-    float worldX = p.x / (.08 + groundDepth * 1.25);
-    float lane = abs(fract(worldX * 2.8 + .5) - .5);
-    float laneLine = .005 / (lane * (.12 + groundDepth) + .006);
-    float rush = fract(groundDepth * 13. - uFlowTime * 3.2);
-    float dash = smoothstep(.82, .98, rush);
-    color += chroma(worldX * .07 + groundDepth, laneLine * dash * groundDepth * (.1 + uHigh * .25));
+    color += horizonWaves(p, baseline);
     color += horizonAscii(p, t, max(tower, peakCap));
     return color;
   }
@@ -633,6 +631,11 @@ export class VisualEngine {
     this.previousSmoke = new SmokeSimulation(this.renderer);
     this.procedural = new ProceduralScenes(this.renderer, this.spectrumTexture);
     this.geiss = new GeissFlow(this.renderer);
+    this.horizonWaves = new HorizonWaves();
+    this.horizonWaveTexture = new THREE.DataTexture(this.horizonWaves.data, HORIZON_WAVE_SAMPLES, HORIZON_WAVE_COUNT, THREE.RedFormat, THREE.UnsignedByteType);
+    this.horizonWaveTexture.minFilter = this.horizonWaveTexture.magFilter = THREE.LinearFilter;
+    this.horizonWaveTexture.generateMipmaps = false;
+    this.horizonWaveTexture.needsUpdate = true;
     this.bloomWaves = new BloomWaves();
     this.bloomWaveTexture = new THREE.DataTexture(this.bloomWaves.data, BLOOM_WAVE_SAMPLES, BLOOM_RING_COUNT, THREE.RedFormat, THREE.UnsignedByteType);
     this.bloomWaveTexture.minFilter = THREE.LinearFilter;
@@ -645,6 +648,8 @@ export class VisualEngine {
       uHorizonBands: { value: HORIZON_BANDS },
       uHorizonAscii: { value: createHorizonAsciiAtlas() },
       uHorizonAsciiGrid: { value: new THREE.Vector2(1, 1) },
+      uHorizonWaveforms: { value: this.horizonWaveTexture },
+      uHorizonLines: { value: this.horizonWaves.lines },
       uTime: { value: 0 }, uFlowTime: { value: 0 }, uFlightTime: { value: 0 }, uLevel: { value: 0 }, uBass: { value: 0 }, uMid: { value: 0 },
       uRadialAngle: { value: 0 },
       uHigh: { value: 0 }, uBeat: { value: 0 }, uMode: { value: 0 },
@@ -787,6 +792,8 @@ export class VisualEngine {
     this.radialMotion.update(audio, delta, this.paused);
     const bloomVisible = this.mode === 0 || (this.blend.active && this.blend.previous === 0);
     if (this.bloomWaves.update(audio, delta, this.paused, bloomVisible)) this.bloomWaveTexture.needsUpdate = true;
+    const horizonVisible = this.mode === 8 || (this.blend.active && this.blend.previous === 8);
+    if (this.horizonWaves.update(audio, delta, this.paused, horizonVisible)) this.horizonWaveTexture.needsUpdate = true;
     if (!this.paused) this.elapsed += Math.min(delta, 0.05) * (0.75 + audio.level * 0.45);
     if (!this.paused) {
       const targetVelocity = 1.15 + audio.level * 1.55 + audio.bass * .8 + audio.high * .35;

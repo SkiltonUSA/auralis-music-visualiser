@@ -8,7 +8,7 @@ export const scenes = [
   { renderMode: 5, title: "Warp", theme: "SPACE-TIME FOLD", description: "A smoky spectral wormhole bending around every beat." },
   { renderMode: 6, title: "Valley", theme: "SPECTRAL FLIGHT", description: "A slow, bird-like glide through ridges carved by the music." },
   { renderMode: 7, title: "Reactor", theme: "RADIAL BURST", description: "A circular instrument panel detonating with every transient." },
-  { renderMode: 8, title: "Horizon", theme: "SPECTRUM CITY", description: "Frequency towers rise above a floor of rushing light." },
+  { renderMode: 8, title: "Horizon", theme: "SPECTRUM CITY", description: "Frequency towers rise above glowing sound waves flowing towards you." },
   { renderMode: 9, title: "Radial", theme: "EXTRUDED ARRAY", description: "Spectrum blocks rotate through a deep circular chamber." },
   { renderMode: 10, title: "Arc", theme: "ELECTRIC ORBIT", description: "Charged rings ignite spectral smoke around the high end." },
   { renderMode: 11, title: "Crystals", theme: "PROCEDURAL FORMATIONS", description: "Frequency-shaped quartz turns before flowing, music-driven aurora curtains." },
