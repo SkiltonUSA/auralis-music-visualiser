@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { TunnelRingPulses, TUNNEL_RING_COUNT, TUNNEL_PULSE_COUNT } from "./tunnel-ring-pulses.js";
 
 // Torus parameterization adapted from quakeboy/Endless-Tunnel-Rendering-OpenGLES
 // RTunnel.cpp / RTunnel.h, commit 3c54aab1cc674c5cf4ce5c6877de8092fbfcc3b7 (MIT).
@@ -10,6 +11,7 @@ import * as THREE from "three";
 export const TUNNEL_RADIUS = 32;
 export const TUNNEL_WIDTH = 6.5;
 const TAU = Math.PI * 2;
+const PLASMA_MOTION_RATE = 2.25;
 
 export function createTunnelGeometry(rings = 240, sides = 48) {
   if (!Number.isInteger(rings) || !Number.isInteger(sides) || rings < 3 || sides < 3) throw new RangeError("A tunnel needs at least three rings and sides");
@@ -56,7 +58,7 @@ const vertexShader = /* glsl */ `
     float u = uv.x * TAU, v = uv.y * TAU;
     float band = texture2D(uSpectrum, vec2(.02 + abs(sin(v)) * .9, .5)).r;
     float wave = sin(v * 6. + u * 4. - uTime * .35);
-    float breathe = uAudio.x * .35 + uPulse * .16;
+    float breathe = uChecker > .5 ? uAudio.x * .35 + uPulse * .16 : 0.;
     float detail = wave * (.08 + uAudio.y * .22) + band * .18;
     float pinch = cos(v * 4. + u * 2.) * (.16 + uAudio.y * .24) * uChecker;
     // Rotate the tube around its own curved centreline, not the camera.
@@ -73,6 +75,7 @@ const vertexShader = /* glsl */ `
 `;
 const fragmentShader = /* glsl */ `
   uniform float uTime, uPulse;
+  uniform vec3 uPulseWaves[${TUNNEL_PULSE_COUNT}];
   uniform float uTileFlash;
   uniform float uChecker;
   uniform vec4 uAudio;
@@ -135,13 +138,28 @@ const fragmentShader = /* glsl */ `
     vec3 pigment = mix(uA, uB, smoothstep(.15, .85, plasma));
     pigment = mix(pigment, uC, pow(plasma, 5.) * .5);
     vec3 color = pigment * (.075 + plasma * .24) * (lamp + .3);
-    float rib = stripe(vUv.x * 64., .018);
+    float ringCoordinate = vUv.x * ${TUNNEL_RING_COUNT}.;
+    // One narrow, finite front per onset. No full-panel illumination, long
+    // trail or additive pile-up: the space behind a pulse stays dark.
+    float wallPulse = 0.;
+    for (int i = 0; i < ${TUNNEL_PULSE_COUNT}; i++) {
+      vec3 pulse = uPulseWaves[i];
+      float offset = abs(mod(ringCoordinate - pulse.x + 32., 64.) - 32.);
+      float aa = min(fwidth(ringCoordinate), .08);
+      float front = 1. - smoothstep(pulse.y * .35, max(.001, pulse.y + aa), offset);
+      wallPulse = max(wallPulse, front * pulse.z);
+    }
+    float edge = abs(fract(ringCoordinate + .5) - .5);
+    float wall = smoothstep(.045, .16 + fwidth(ringCoordinate), edge);
+    float rib = stripe(ringCoordinate, .018);
     float twist = sin(u * 4.) * .28 + uTime * .008;
     float seam = stripe(vUv.y * 24. + twist, .014);
-    float ringGlow = exp(-abs(fract(vUv.x * 64. + .5) - .5) * 36.) * .16;
+    float ringGlow = exp(-edge * 36.) * .16;
     float filament = 1. - smoothstep(.018, .05 + fwidth(plasma), abs(plasma - .54));
     float farFade = 1. - smoothstep(18., 45., distance);
-    color += mix(uB, uC, .35) * (rib * .85 + ringGlow) * (.65 + uAudio.x * .6 + uPulse * .25);
+    // Keep the front saturated, below the white-hot bloom of the old wash.
+    color += uB * wallPulse * mix(.65, 1., wall) * .65;
+    color += uB * (rib * .85 + ringGlow) * .38;
     color += uA * seam * (.22 + band * .6);
     color += pigment * filament * (.05 + uAudio.z * .22) * farFade;
     color = mix(color, vec3(.003, .001, .009), smoothstep(14., 48., distance));
@@ -179,12 +197,14 @@ export class EndlessTunnel {
   constructor(scene, camera, spectrum, random, style = "plasma") {
     this.style = style;
     this.tileFlash = new CheckerBeatFlash();
+    this.ringPulses = style === "plasma" ? new TunnelRingPulses() : null;
     this.camera = camera; this.startAngle = random() * TAU;
     this.distance = 0; this.time = 0; this.speed = 4.8; this.pulse = 0;
     this.tubeRotation = 0;
     this.motionTime = 0; this.roll = 0; this.sway = 0; this.lift = 0; this.bank = 0;
     this.audio = new THREE.Vector4(0, 0, 0, 0); this.look = new THREE.Vector3();
     this.uniforms = { uTime: { value: 0 }, uTubeRotation: { value: 0 }, uPulse: { value: 0 }, uTileFlash: { value: 0 }, uChecker: { value: style === "checker" ? 1 : 0 }, uAudio: { value: this.audio },
+      uPulseWaves: { value: this.ringPulses?.uniforms || new Float32Array(TUNNEL_PULSE_COUNT * 3) },
       uSpectrum: { value: spectrum }, uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uC: { value: new THREE.Color() } };
     this.mesh = new THREE.Mesh(createTunnelGeometry(), new THREE.ShaderMaterial({
       vertexShader, fragmentShader, uniforms: this.uniforms, side: THREE.BackSide }));
@@ -203,11 +223,12 @@ export class EndlessTunnel {
     if (dt > 0) {
       // Torus retains its gentle tube rotation. Plasma gets a stronger
       // corkscrew plus a separate, smooth flying-camera orientation.
-      const spinSpeed = this.style === "checker" ? .16 + this.audio.w * .06 : .22 + this.audio.w * .10;
+      // Two successive 50% increases: 2.25x spin/steering, not forward travel or Torus.
+      const spinSpeed = this.style === "checker" ? .16 + this.audio.w * .06 : (.22 + this.audio.w * .10) * PLASMA_MOTION_RATE;
       this.tubeRotation = (this.tubeRotation + dt * spinSpeed) % TAU;
       if (this.style === "plasma") {
-        this.motionTime += dt * (.75 + this.audio.w * .25);
-        this.roll = (this.roll + dt * (.07 + this.audio.y * .025)) % TAU;
+        this.motionTime += dt * (.75 + this.audio.w * .25) * PLASMA_MOTION_RATE;
+        this.roll = (this.roll + dt * (.07 + this.audio.y * .025) * PLASMA_MOTION_RATE) % TAU;
       }
     }
     this.uniforms.uTubeRotation.value = this.tubeRotation;
@@ -218,6 +239,7 @@ export class EndlessTunnel {
     const colors = scheme[palette] || scheme[0];
     this.uniforms.uA.value.setHex(colors[0]); this.uniforms.uB.value.setHex(colors[1]); this.uniforms.uC.value.setHex(colors[2]);
     const angle = this.startAngle + THREE.MathUtils.euclideanModulo(this.distance / TUNNEL_RADIUS, TAU);
+    this.ringPulses?.update(audio, dt, angle / TAU * TUNNEL_RING_COUNT);
     tunnelCenter(angle, this.camera.position);
     tunnelCenter(angle + .12, this.look);
     if (this.style === "plasma") {

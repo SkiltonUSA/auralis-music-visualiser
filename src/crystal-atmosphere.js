@@ -39,21 +39,23 @@ const fragmentShader = /* glsl */ `
     return n;
   }
   void main() {
-    vec2 p = vUv * vec2(4.8, 2.3) + vec2(-uTime * .13, uTime * .035);
+    vec2 p = vUv * vec2(3.6, 2.8) + vec2(-uTime * .13, uTime * .035);
     vec2 curl = vec2(fbm(p + uSeed), fbm(p + 19.7));
-    float density = smoothstep(.08, .56, fbm(p + curl * 2.4));
-    float edge = 1. - smoothstep(.2, 1., length((vUv - .5) * vec2(2., 2.2)));
+    float density = smoothstep(.18, .62, fbm(p + curl * 2.4));
+    float edge = 1. - smoothstep(.35, 1., length((vUv - .5) * vec2(2., 2.)));
     float strands = .65 + .35 * noise(p * 2. + curl);
-    // Neutral grey, normal alpha blending: a veil, not luminous coloured fog.
-    gl_FragColor = vec4(vec3(.16 + density * .1), density * strands * edge * uOpacity);
+    // A localized grey wisp absorbs light only in the small patch it crosses.
+    // Exponential opacity retains wispy holes instead of a flat overlay.
+    float absorption = 1. - exp(-density * strands * 2.6);
+    gl_FragColor = vec4(vec3(.13 + density * .1), absorption * edge * uOpacity);
   }
 `;
 
 export class CrystalSmokeVeils {
   constructor(scene, random) {
-    this.random = random; this.time = 0; this.next = .8 + random() * 1.2;
+    this.random = random; this.time = 0; this.next = .15 + random() * .25;
     const geometry = new THREE.PlaneGeometry(1, 1);
-    this.slots = Array.from({ length: 2 }, () => {
+    this.slots = Array.from({ length: 1 }, () => {
       const material = new THREE.ShaderMaterial({ vertexShader, fragmentShader,
         uniforms: { uTime: { value: 0 }, uSeed: { value: 0 }, uOpacity: { value: 0 } },
         transparent: true, depthWrite: false, blending: THREE.NormalBlending });
@@ -64,11 +66,13 @@ export class CrystalSmokeVeils {
   }
   spawn(slot) {
     const random = this.random;
-    slot.active = true; slot.age = 0; slot.duration = 7 + random() * 3;
-    slot.direction = random() > .5 ? 1 : -1; slot.y = (random() - .5) * 2;
-    slot.opacity = .72 + random() * .16;
-    slot.mesh.position.z = 4.2;
-    slot.mesh.scale.set(8 + random() * 2, 3.2 + random() * 1.2, 1);
+    slot.active = true; slot.age = 0; slot.duration = 8 + random() * 2;
+    slot.direction = random() > .5 ? 1 : -1; slot.y = (random() - .5) * 1.2;
+    slot.opacity = .72 + random() * .08;
+    slot.mesh.position.z = 3.9 + random() * .6;
+    // A narrow patch rather than a globe-sized blanket. One layer prevents
+    // overlapping fog from accumulating into full-surface obscuration.
+    slot.mesh.scale.set(3.8 + random() * .8, 1.3 + random() * .5, 1);
     slot.mesh.rotation.z = (random() - .5) * .3;
     slot.mesh.material.uniforms.uSeed.value = random() * 100;
     slot.mesh.visible = true;
@@ -80,14 +84,16 @@ export class CrystalSmokeVeils {
     if (this.time >= this.next) {
       const slot = this.slots.find((candidate) => !candidate.active);
       if (slot) this.spawn(slot);
-      this.next = this.time + 2.2 + this.random() * 2;
+      this.next = this.time + 1.8 + this.random() * .6;
     }
     for (const slot of this.slots) {
       if (!slot.active) continue;
       slot.age += dt;
       const phase = Math.min(1, slot.age / slot.duration);
-      const envelope = Math.sin(Math.PI * phase) ** 2;
-      slot.mesh.position.x = slot.direction * (phase - .5) * 5;
+      // One passing wisp with gentle fades; most of the globe remains clear.
+      const envelope = THREE.MathUtils.smoothstep(slot.age, 0, 1.6) *
+        (1 - THREE.MathUtils.smoothstep(slot.age, slot.duration - 2.4, slot.duration));
+      slot.mesh.position.x = slot.direction * (phase - .5) * 4;
       slot.mesh.position.y = slot.y + Math.sin(phase * Math.PI) * .25;
       slot.mesh.material.uniforms.uTime.value = this.time;
       slot.mesh.material.uniforms.uOpacity.value = envelope * slot.opacity * (.85 + THREE.MathUtils.clamp(level, 0, 1) * .15);

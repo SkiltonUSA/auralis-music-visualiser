@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-09-29T16:45:34.208Z",
+  "capturedAt": "2026-09-29T20:23:12.651Z",
   "source": "Built-in demo signal; live browser rendering, visual-only mode",
   "width": 1280,
   "height": 800,
@@ -11,7 +11,7 @@
       "renderMode": 0,
       "file": "01-bloom.jpg",
       "mode": 0,
-      "renderedSeconds": 4.283995025502054
+      "renderedSeconds": 4.019243835340238
     },
     {
       "scene": 2,
@@ -19,7 +19,7 @@
       "renderMode": 1,
       "file": "02-prism.jpg",
       "mode": 1,
-      "renderedSeconds": 2.8443559868069634
+      "renderedSeconds": 2.823867508119406
     },
     {
       "scene": 3,
@@ -27,7 +27,7 @@
       "renderMode": 3,
       "file": "03-signal.jpg",
       "mode": 3,
-      "renderedSeconds": 2.8332243456759967
+      "renderedSeconds": 2.8087004673015974
     },
     {
       "scene": 4,
@@ -35,7 +35,7 @@
       "renderMode": 4,
       "file": "04-torus.jpg",
       "mode": 4,
-      "renderedSeconds": 2.827092744629871
+      "renderedSeconds": 2.806838344909517
     },
     {
       "scene": 5,
@@ -43,7 +43,7 @@
       "renderMode": 5,
       "file": "05-warp.jpg",
       "mode": 5,
-      "renderedSeconds": 2.803984405698486
+      "renderedSeconds": 2.8204328506502385
     },
     {
       "scene": 6,
@@ -51,7 +51,7 @@
       "renderMode": 6,
       "file": "06-valley.jpg",
       "mode": 6,
-      "renderedSeconds": 3.3342988229620687
+      "renderedSeconds": 2.8033351438684058
     },
     {
       "scene": 7,
@@ -59,7 +59,7 @@
       "renderMode": 7,
       "file": "07-reactor.jpg",
       "mode": 7,
-      "renderedSeconds": 3.395200697105878
+      "renderedSeconds": 2.8024051485342696
     },
     {
       "scene": 8,
@@ -67,7 +67,7 @@
       "renderMode": 8,
       "file": "08-horizon.jpg",
       "mode": 8,
-      "renderedSeconds": 2.8133133809143978
+      "renderedSeconds": 2.8374356067247675
     },
     {
       "scene": 9,
@@ -75,7 +75,7 @@
       "renderMode": 9,
       "file": "09-radial.jpg",
       "mode": 9,
-      "renderedSeconds": 3.3396808983155637
+      "renderedSeconds": 2.8341314673300566
     },
     {
       "scene": 10,
@@ -83,7 +83,7 @@
       "renderMode": 10,
       "file": "10-arc.jpg",
       "mode": 10,
-      "renderedSeconds": 3.336718451560163
+      "renderedSeconds": 2.824808173385957
     },
     {
       "scene": 11,
@@ -91,8 +91,7 @@
       "renderMode": 11,
       "file": "11-crystals.jpg",
       "mode": 11,
-      "renderedSeconds": 4.016799999999994,
-      "capturedAt": "2026-09-29T18:08:01Z"
+      "renderedSeconds": 5.001645560713861
     },
     {
       "scene": 12,
@@ -100,7 +99,7 @@
       "renderMode": 12,
       "file": "12-neon-road.jpg",
       "mode": 12,
-      "renderedSeconds": 2.835372375327431
+      "renderedSeconds": 2.8208724443111137
     },
     {
       "scene": 13,
@@ -108,7 +107,7 @@
       "renderMode": 13,
       "file": "13-tunnel.jpg",
       "mode": 13,
-      "renderedSeconds": 2.82009512348705
+      "renderedSeconds": 2.8413219152236238
     },
     {
       "scene": 14,
@@ -116,7 +115,7 @@
       "renderMode": 14,
       "file": "14-flyover.jpg",
       "mode": 14,
-      "renderedSeconds": 2.8594563449000248
+      "renderedSeconds": 2.8437707675759043
     },
     {
       "scene": 15,
@@ -124,7 +123,7 @@
       "renderMode": 15,
       "file": "15-geiss-flow.jpg",
       "mode": 15,
-      "renderedSeconds": 4.045432298660245
+      "renderedSeconds": 4.02188105355301
     }
   ]
 }

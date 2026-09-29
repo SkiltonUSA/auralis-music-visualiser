@@ -14,8 +14,10 @@ Crystals now includes a depth-tested curl-noise particle cloud adapted from
 [Edan Kwan's The Spirit](https://github.com/edankwan/The-Spirit). Three moving
 emitters form smoky streams around the globe. Bass widens the cloud, mids stir
 the curl field, treble adds fine sparkle, and detected beats impart a gentle
-outward pulse. The centre is kept clear; the existing fixed-height, slowly
-rotating globe, beat-grown shards, aurora and grey smoke remain unchanged.
+outward pulse. The particle cloud keeps the centre clear; a separate localized
+grey smoke wisp passes in front of part of the fixed-height globe. Rotation
+smoothly follows musical tempo, while shards grow and triangular faces flash
+in travelling ripples on detected beats.
 
 Two reusable 128 × 128 floating-point textures store positions and lifetimes.
 Auto / High / Ultra draw 8,192 / 12,288 / 16,384 particles respectively; quality
@@ -115,7 +117,13 @@ Crystals and its aurora backdrop adapt geometry and lighting techniques from [Ge
 
 Crystals includes a softer aurora backdrop in the same 3D scene, behind the crystal formations rather than overlaid on top. Both layers share the scene's music response, palette, clock, and pause state. Auto/High/Ultra use 2/4/6 background sheets to limit the additional rendering cost; no second scene render target or terrain is needed for this backdrop. The standalone Aurora scene has been removed from the selector, keyboard cycle, Auto Director, and rendering pipeline. Crystals is scene 11; Neon Road is scene 12. Orbit has been removed from the selector, keyboard cycle, Auto Director, and shader. Display numbers are sequential; internal renderer IDs remain stable to preserve each scene's effects.
 
-In Crystals, the globe stays vertically fixed and turns slowly at 0.04 radians/second (one revolution in about 157 seconds), independent of music volume. Detected beats grow individual shards outward from their surface anchors, with a fast, smooth attack and gradual release. Growth primarily extends crystal length, with a little extra width; the globe itself never scales or bounces. Camera height is fixed, with wider framing to accommodate the growing tips. Dense neutral-grey smoke veils drift across the foreground with seeded random timing, direction, and height. Two reusable sheets last 7–10 seconds, with new emission opportunities every 2.2–4.2 seconds, broader coverage, and peak opacity capped at 0.88 per sheet before the noise and edge fades. These veils are separate from the fluid solver used in other scenes and freeze with the scene when paused.
+In Crystals, the globe stays vertically fixed and its angular velocity smoothly follows tempo, not volume: 60/120/180 BPM target 0.27/0.54/0.81 radians/second. Beat-interval estimation provides a fallback while audio analysis calibrates. After beats stop, rotation eases back to 0.04 radians/second. Exact integration of the speed ramp preserves motion across frame rates, and pause/hidden scenes freeze it. Detected beats still grow individual shards outward from their fixed anchors; the globe itself never scales or bounces.
+
+Each beat also launches a surface-light ripple shared by core and shards. Repeated triangle-centroid attributes give each face one constant angular distance from the ripple origin, so whole triangular faces flash in sequence rather than drawing a smooth stripe through them. Eight reusable wave slots travel across the rotating globe; overlapping flashes use maximum brightness rather than additive white saturation.
+
+A single neutral-grey smoke wisp crosses a limited part of the formation, preserving most of the silhouette and neon edges. Its small foreground sheet lasts 8–10 seconds, with seeded variation in position and direction and opacity capped at 0.8 before noise and edge fades. It cannot accumulate into a full-globe fog blanket. The wisp is separate from the fluid solver used in other scenes and freezes when paused.
+
+Beneath the aurora, Crystals reuses Horizon's 24-line/6 KB audio-waveform history and perspective-floor shader in cyan/magenta. A depth-tested background pass keeps the moving lines behind the globe, shards and smoke; its horizon follows the projected lower aurora hem. Each line retains its captured waveform while travelling towards the viewer. The history freezes while hidden or paused and survives viewport/quality changes. Scene disposal releases the floor texture, material and geometry.
 
 ### Neon Road
 
@@ -125,7 +133,11 @@ Neon Road has its own lightweight atmosphere: six reusable, depth-tested smoke s
 
 ### Endless Tunnel
 
-Scene 13, Tunnel, adapts [Quakeboy's Endless-Tunnel-Rendering-OpenGLES](https://github.com/quakeboy/Endless-Tunnel-Rendering-OpenGLES). The reviewed renderer uses an indexed torus, a camera inside it, a repeating plasma bitmap, and frame-based torus rotation/camera roll. This browser adaptation moves the camera along the closed torus centerline with a stable up vector, uses elapsed-time movement, and duplicates both mesh/UV seams for continuous interpolation. Procedural plasma, illuminated ribs, and spectral filaments replace the bitmap. Bass expands the walls, mids sculpt folds, and highs/FFT bins brighten fine detail; energy eases travel speed without camera kicks. One reusable 11,809-vertex mesh is rendered into the existing depth-enabled HDR pipeline. No extra native dependencies or assets are needed. Pause freezes the scene, hidden scenes stop updating, and Auto/High/Ultra target caps still apply. Torus now reuses this enclosed geometry and camera path with its own checker-wall material; Warp remains unchanged. Attribution and the complete MIT notice are in `THIRD_PARTY_NOTICES.md`.
+Scene 13, Tunnel, adapts [Quakeboy's Endless-Tunnel-Rendering-OpenGLES](https://github.com/quakeboy/Endless-Tunnel-Rendering-OpenGLES). The reviewed renderer uses an indexed torus, a camera inside it, a repeating plasma bitmap, and frame-based torus rotation/camera roll. This browser adaptation moves the camera along the closed torus centerline, with smooth banking, upward steering and side-to-side sweeps. Tube rotation, steering and roll run at 2.25× their original rates; forward travel and the separate Torus scene retain their speeds. Duplicated mesh/UV seams keep the procedural plasma, ribs and spectral filaments continuous.
+
+Each detected beat launches one narrow cyan front from deeper in the tunnel towards and past the viewer. Its width is less than one ring spacing; the shader evaluates the front continuously instead of interpolating broad panel illumination. There are no independent random ring flashes or long bright trails, and maximum rather than additive blending prevents white wash during rapid beats. A fixed eight-wave pool bounds memory, with retired pulses never wrapping back into view.
+
+One reusable 11,809-vertex mesh is rendered into the existing depth-enabled HDR pipeline. No extra native dependencies or assets are needed. Pause freezes the scene, hidden scenes stop updating, and Auto/High/Ultra target caps still apply. Torus reuses the enclosed geometry and camera path with its own checker-wall material; Warp remains unchanged. Attribution and the complete MIT notice are in `THIRD_PARTY_NOTICES.md`.
 
 ### Smoke performance
 

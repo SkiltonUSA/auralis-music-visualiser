@@ -44,21 +44,30 @@ describe("random grey smoke veils", () => {
     veils.slots[0].mesh.geometry.dispose();
     veils.slots.forEach((slot) => slot.mesh.material.dispose());
   }
-  it("uses a fixed two-sheet pool with seeded, varying intervals and thicker bounded opacity", () => {
+  it("uses one small foreground wisp so fog cannot cover the whole globe", () => {
     const a = create(42), b = create(42), c = create(43);
     expect(a.next).toBe(b.next);
     expect(a.next).not.toBe(c.next);
     const meshes = a.slots.map((slot) => slot.mesh), intervals = new Set();
+    expect(a.slots).toHaveLength(1);
     let visibleFrames = 0, clearFrames = 0;
     for (let i = 0; i < 1200; i++) {
       a.update(.05, .8); b.update(.05, .8);
       intervals.add(a.next);
       expect(a.next).toBe(b.next);
       if (a.slots.some((slot) => slot.active)) visibleFrames++; else clearFrames++;
+      expect(a.slots.filter(slot => slot.active).length).toBeLessThanOrEqual(1);
       for (const slot of a.slots) {
         expect(slot.mesh.material.uniforms.uOpacity.value).toBeGreaterThanOrEqual(0);
-        expect(slot.mesh.material.uniforms.uOpacity.value).toBeLessThanOrEqual(.88);
+        expect(slot.mesh.material.uniforms.uOpacity.value).toBeLessThanOrEqual(.8);
         expect(slot.mesh.material.blending).toBe(THREE.NormalBlending);
+        expect(slot.mesh.material.depthWrite).toBe(false);
+        if (slot.active) {
+          expect(slot.mesh.position.z).toBeGreaterThanOrEqual(3.9);
+          expect(slot.mesh.scale.y).toBeGreaterThanOrEqual(1.3);
+          expect(slot.mesh.scale.y).toBeLessThanOrEqual(1.8);
+          expect(slot.mesh.scale.x).toBeLessThanOrEqual(4.6);
+        }
       }
     }
     expect(visibleFrames).toBeGreaterThan(0); expect(clearFrames).toBeGreaterThan(0);
@@ -70,8 +79,8 @@ describe("random grey smoke veils", () => {
     const veils = create(42), slot = veils.slots[0];
     veils.spawn(slot); veils.next = 100;
     expect(slot.opacity).toBeGreaterThanOrEqual(.72);
-    expect(slot.mesh.scale.y).toBeGreaterThanOrEqual(3.2);
-    expect(slot.duration).toBeGreaterThanOrEqual(7);
+    expect(slot.mesh.scale.y).toBeGreaterThanOrEqual(1.3);
+    expect(slot.duration).toBeGreaterThanOrEqual(8);
     veils.update(.001);
     expect(slot.mesh.material.uniforms.uOpacity.value).toBeLessThan(.001);
     for (let i = 0; i < 30; i++) veils.update(.05);
@@ -79,7 +88,7 @@ describe("random grey smoke veils", () => {
     veils.update(0, 1);
     expect(veils.time).toBe(time); expect(slot.mesh.position).toEqual(position);
     expect(slot.mesh.material.uniforms.uOpacity.value).toBe(alpha);
-    for (let i = 0; i < 220; i++) veils.update(.05);
+    for (let i = 0; i < 280; i++) veils.update(.05);
     expect(slot.active).toBe(false); expect(slot.mesh.visible).toBe(false);
     dispose(veils);
   });

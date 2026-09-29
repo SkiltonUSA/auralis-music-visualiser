@@ -74,9 +74,9 @@ music change the appearance between sessions. Click an image to view it at full 
 | **08 · Horizon** | 29 mirrored frequency bands form a skyline above a perspective floor. A subtle music-reactive ASCII field drifts behind it. | [![Horizon](docs/screenshots/08-horizon.jpg)](docs/screenshots/08-horizon.jpg) |
 | **09 · Radial** | Extruded circular spectrum blocks with slow, smoothly integrated musical rotation and responsive highlights. | [![Radial](docs/screenshots/09-radial.jpg)](docs/screenshots/09-radial.jpg) |
 | **10 · Arc** | Electric orbital rings, spectral smoke and high-frequency sparks. | [![Arc](docs/screenshots/10-arc.jpg)](docs/screenshots/10-arc.jpg) |
-| **11 · Crystals** | A slowly rotating neon globe with dark facets and cyan/magenta edges. Shards grow on beats while Spirit-style GPU particles curl around the formation, alongside grey smoke veils and matching aurora curtains. | [![Crystals](docs/screenshots/11-crystals.jpg)](docs/screenshots/11-crystals.jpg) |
+| **11 · Crystals** | A neon globe whose spin smoothly follows musical tempo, with beat-rippling triangular faces and growing shards. Spirit-style GPU particles, a passing smoke wisp, matching aurora curtains and Horizon's approaching waveform floor surround the formation. | [![Crystals](docs/screenshots/11-crystals.jpg)](docs/screenshots/11-crystals.jpg) |
 | **12 · Neon Road** | An ’80s neon highway with a route-following camera, striped sunset, grid mountains, roadside lights, smoke and clouds. | [![Neon Road](docs/screenshots/12-neon-road.jpg)](docs/screenshots/12-neon-road.jpg) |
-| **13 · Tunnel** | A seamless toroidal plasma tunnel with flowing coloured walls, illuminated ribs and continuous camera travel. | [![Tunnel](docs/screenshots/13-tunnel.jpg)](docs/screenshots/13-tunnel.jpg) |
+| **13 · Tunnel** | A seamless plasma tunnel with fast corkscrew flight and banking. Each detected beat launches one narrow cyan pulse from the bend towards the viewer, leaving dark space behind it. | [![Tunnel](docs/screenshots/13-tunnel.jpg)](docs/screenshots/13-tunnel.jpg) |
 | **14 · Flyover** | Fast neon terrain flyovers over mountains and waterways, with procedural terrain chunks, clouds and depth-tested smoke. | [![Flyover](docs/screenshots/14-flyover.jpg)](docs/screenshots/14-flyover.jpg) |
 | **15 · Geiss Flow** | The waveform feeds persistent neon trails that morph between expanding spirals, paired vortices and winding currents. | [![Geiss Flow](docs/screenshots/15-geiss-flow.jpg)](docs/screenshots/15-geiss-flow.jpg) |
 
@@ -123,6 +123,11 @@ src/
   terrain-flyover.js       Streaming terrain and route-following flight
   neon-road.js             Procedural synthwave road
   endless-tunnel.js        Enclosed checker and plasma tunnel geometry
+  tunnel-ring-pulses.js    Narrow beat pulses travelling towards the camera
+  neon-crystals.js         Neon edges and individual triangular face lighting
+  crystal-facet-ripples.js Beat-triggered ripples across the crystal surface
+  crystal-tempo-spin.js    Smooth BPM-driven globe rotation
+  crystal-wave-floor.js    Horizon's waveform floor beneath the aurora
   geiss-flow.js            Persistent waveform-fed GPU feedback
   horizon-ascii.js         Cached glyph atlas and ASCII background shader
   smoke-simulation.js      Audio-reactive fluid simulation

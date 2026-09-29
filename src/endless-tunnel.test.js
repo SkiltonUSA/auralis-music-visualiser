@@ -80,7 +80,7 @@ describe("endless tunnel motion", () => {
     scenes.render(13, {}, .05, 0, [], false);
     const torus = scenes.entries.get(4).tunnel, plasma = scenes.entries.get(13).tunnel;
     expect(torus.uniforms.uTubeRotation.value).toBeCloseTo(.008);
-    expect(plasma.uniforms.uTubeRotation.value).toBeCloseTo(.011);
+    expect(plasma.uniforms.uTubeRotation.value).toBeCloseTo(.02475);
     expect(torus.roll).toBe(0);
     expect(plasma.roll).toBeGreaterThan(0);
     expect(torus.camera.position.length()).toBeCloseTo(TUNNEL_RADIUS);
@@ -160,7 +160,8 @@ describe("endless tunnel motion", () => {
       expect(orientation.angleTo(camera.quaternion)).toBeLessThan(.03);
     }
     expect(left).toBeLessThan(-.8); expect(right).toBeGreaterThan(.8);
-    expect(tunnel.roll).toBeGreaterThan(4);
+    expect(tunnel.roll).toBeGreaterThan(0);
+    expect(tunnel.motionTime).toBeGreaterThan(60);
     expect(tunnel.tubeRotation).toBeGreaterThan(0);
     expect(maxOffset).toBeLessThan(.42);
     expect(tunnel.distance).toBeGreaterThan(280);
@@ -170,15 +171,17 @@ describe("endless tunnel motion", () => {
     const a = setup(), b = setup();
     for (let i = 0; i < 300; i++) a.tunnel.update({}, 1 / 30, 0);
     for (let i = 0; i < 1200; i++) b.tunnel.update({}, 1 / 120, 0);
-    expect(a.tunnel.tubeRotation).toBeCloseTo(2.2, 8);
-    expect(a.tunnel.roll).toBeCloseTo(.7, 8);
+    expect(a.tunnel.tubeRotation).toBeCloseTo(4.95, 8);
+    expect(a.tunnel.roll).toBeCloseTo(1.575, 8);
+    expect(a.tunnel.motionTime).toBeCloseTo(16.875, 8);
+    expect(a.tunnel.distance).toBeCloseTo(48, 8);
     expect(a.tunnel.motionTime).toBeCloseTo(b.tunnel.motionTime, 8);
     expect(a.camera.quaternion.angleTo(b.camera.quaternion)).toBeLessThan(1e-7);
     const before = [a.tunnel.motionTime, a.tunnel.tubeRotation, a.tunnel.roll, ...a.camera.position.toArray(), ...a.camera.quaternion.toArray()];
     a.tunnel.update({ level: 1, bass: 1, mid: 1, beat: 1 }, 0, 0);
     expect([a.tunnel.motionTime, a.tunnel.tubeRotation, a.tunnel.roll, ...a.camera.position.toArray(), ...a.camera.quaternion.toArray()]).toEqual(before);
     a.tunnel.update({ level: 1, mid: 1 }, 100, 0);
-    expect(a.tunnel.tubeRotation - before[1]).toBeLessThan(.0161);
+    expect(a.tunnel.tubeRotation - before[1]).toBeLessThan(.0361);
     a.tunnel.roll = Math.PI * 2 - .001;
     a.tunnel.update({}, 0, 0);
     const seamOrientation = a.camera.quaternion.clone();
@@ -186,6 +189,15 @@ describe("endless tunnel motion", () => {
     expect(a.tunnel.roll).toBeLessThan(.002);
     expect(seamOrientation.angleTo(a.camera.quaternion)).toBeLessThan(.01);
     a.dispose(); b.dispose();
+  });
+  it("compounds two 50% increases into 2.25 times the original spin and steering rates", () => {
+    const { tunnel, dispose } = setup();
+    tunnel.update({ level: .8, mid: .6, bass: .7 }, .05, 0);
+    expect(tunnel.tubeRotation).toBeCloseTo(.05 * (.22 + tunnel.audio.w * .10) * 2.25, 12);
+    expect(tunnel.roll).toBeCloseTo(.05 * (.07 + tunnel.audio.y * .025) * 2.25, 12);
+    expect(tunnel.motionTime).toBeCloseTo(.05 * (.75 + tunnel.audio.w * .25) * 2.25, 12);
+    expect(tunnel.distance).toBeCloseTo(.05 * tunnel.speed, 12);
+    dispose();
   });
   it("travels forward at a frame-rate independent speed, including across the loop seam", () => {
     const a = setup(), b = setup();
