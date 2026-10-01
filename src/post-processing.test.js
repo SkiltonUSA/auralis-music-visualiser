@@ -22,6 +22,19 @@ describe("final scene fade", () => {
     expect(post.finalUniforms.uSceneFx.value).toBe(1);
     expect(post.finalUniforms.uHistoryReady.value).toBe(1);
     expect(post.copyUniforms.uOpacity.value).toBe(1);
+    post.render({}, {}, audio, 3, 1, 0, {bloomStrength:1,rgbShiftAmount:.001});
+    expect(post.finalUniforms.uBloomStrength.value).toBe(1);
+    expect(post.finalUniforms.uRgbShift.value).toBe(.001);
+    post.render({}, {}, audio, 4, 1, 0, {bloomStrength:.71,rgbShiftAmount:.0005});
+    expect(post.finalUniforms.uBloomStrength.value).toBe(.71);
+    expect(post.finalUniforms.uRgbShift.value).toBe(.0005);
+    post.render({}, {}, audio, 5);
+    expect(post.finalUniforms.uBloomStrength.value).toBe(.42);
+    expect(post.finalUniforms.uRgbShift.value).toBe(0);
+    for (const response of [.5 / 1.2, 1, 2.5 / 1.2]) {
+      post.render({}, {}, { ...audio, response }, 6, 1, 1, { bloomStrength: 2.1 });
+      expect(post.finalUniforms.uBloomStrength.value).toBeCloseTo(2.1 * Math.sqrt(response));
+    }
     for (const target of [...post.sceneTargets, ...post.bloomTargets, ...post.feedbackTargets]) target.dispose();
     for (const material of [post.prefilterMaterial, post.blurMaterial, post.finalMaterial, post.copyMaterial]) material.dispose();
     post.quad.geometry.dispose();

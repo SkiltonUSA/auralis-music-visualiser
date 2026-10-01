@@ -1,3 +1,6 @@
+import { GlobalResponse, DEFAULT_RESPONSE } from './global-response.js';
+import { DemoPlaylist, DEMO_TRACKS } from './demo-playlist.js';
+
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
 export const FREQUENCY_RANGES = Object.freeze({
@@ -50,13 +53,20 @@ export class AudioEngine {
     this.fileSource = null;
     this.outputConnected = false;
     this.stream = null;
+    this.microphoneRequest = null;
+    this.sourceRequestId = 0;
+    this.onMicrophoneEnded = null;
+    this.demoMusic = null;
+    this.demoMusicRequest = null;
+    this.onDemoTrackChanged = null;
     this.fileUrl = null;
     this.frequency = new Uint8Array(1024);
     this.waveform = new Uint8Array(2048).fill(128);
     this.previousFrequency = new Uint8Array(1024);
     this.fluxHistory = [];
     this.mode = "demo";
-    this.sensitivity = 1.2;
+    this.response = new GlobalResponse();
+    this.sensitivity = DEFAULT_RESPONSE;
     this.demoStartedAt = performance.now();
     this.demoBeatIndex = -1;
     this.lastBeatAt = 0;
@@ -85,55 +95,116 @@ export class AudioEngine {
   }
 
   disconnectSource() {
+    this.demoMusic?.stop();
     this.source?.disconnect();
     this.source = null;
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
     this.player.pause();
+    // File playback may have connected the analyser to the speakers. Never
+    // retain that connection when switching to a live microphone.
+    if (this.outputConnected) {
+      this.analyser.disconnect(this.context.destination);
+      this.outputConnected = false;
+    }
     if (this.fileUrl) URL.revokeObjectURL(this.fileUrl);
     this.fileUrl = null;
   }
 
   resetTiming() {
+    this.previousFrequency.fill(0);
+    this.fluxHistory = [];
     this.lastBeatAt = 0;
     this.beatTimes = [];
     this.beatCount = 0;
     this.estimatedBpm = 0;
   }
 
-  async useMicrophone() {
-    await this.ensureContext();
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { autoGainControl: false, echoCancellation: false, noiseSuppression: false },
+  cancelMicrophoneRequest() {
+    const request = this.microphoneRequest;
+    if (!request) return;
+    this.microphoneRequest = null;request.cancelled = true;
+    request.stream?.getTracks().forEach(track => track.stop());
+    request.reject(new DOMException('Microphone request cancelled', 'AbortError'));
+  }
+
+  useMicrophone() {
+    if (this.microphoneRequest) return this.microphoneRequest.promise;
+    const liveTrack = this.mode === 'microphone' && this.stream?.getAudioTracks().find(track => track.readyState === 'live');
+    if (liveTrack) return Promise.resolve(liveTrack.label || 'System microphone');
+    if (!navigator.mediaDevices?.getUserMedia) return Promise.reject(new DOMException('Microphone unavailable', 'NotSupportedError'));
+    const request = { id: ++this.sourceRequestId, cancelled: false, stream: null };
+    this.microphoneRequest = request;
+    const cancelled = new Promise((_, reject) => { request.reject = reject; });
+    const stale = () => request.cancelled || request.id !== this.sourceRequestId;
+    // Permission and audio activation begin together in the user's gesture.
+    const capture = Promise.resolve().then(() => {
+      if (stale()) throw new DOMException('Microphone request cancelled', 'AbortError');
+      return navigator.mediaDevices.getUserMedia({
+        audio: { autoGainControl: false, echoCancellation: false, noiseSuppression: false }, video: false,
+      });
+    }).then(stream => {
+      request.stream = stream;
+      if (stale()) {
+        stream.getTracks().forEach(track => track.stop());
+        throw new DOMException('Microphone request cancelled', 'AbortError');
+      }
+      return stream;
     });
-    this.disconnectSource();
-    this.stream = stream;
-    this.source = this.context.createMediaStreamSource(stream);
-    this.source.connect(this.analyser);
-    this.mode = "microphone";
-    this.resetTiming();
-    return stream.getAudioTracks()[0]?.label || "Mac microphone";
+    const connect = Promise.all([this.ensureContext(), capture]).then(([, stream]) => {
+      if (stale()) throw new DOMException('Microphone request cancelled', 'AbortError');
+      const track = stream.getAudioTracks().find(track => track.readyState === 'live');
+      if (!track) throw new DOMException('No live microphone', 'NotFoundError');
+      const source = this.context.createMediaStreamSource(stream);
+      source.connect(this.analyser);
+      this.disconnectSource();
+      this.stream = stream;this.source = source;this.mode = 'microphone';this.resetTiming();
+      track.addEventListener('ended', () => {
+        if (this.stream !== stream) return;
+        this.useDemo();this.onMicrophoneEnded?.();
+      }, { once: true });
+      return track.label || 'System microphone';
+    });
+    request.promise = Promise.race([connect, cancelled]).catch(error => {
+      request.cancelled = true;
+      if (request.stream !== this.stream) request.stream?.getTracks().forEach(track => track.stop());
+      throw error;
+    }).finally(() => {
+      if (this.microphoneRequest === request) this.microphoneRequest = null;
+    });
+    return request.promise;
   }
 
   async useFile(file) {
-    await this.ensureContext();
-    this.disconnectSource();
-    this.fileUrl = URL.createObjectURL(file);
-    this.player.src = this.fileUrl;
-    this.fileSource ||= this.context.createMediaElementSource(this.player);
-    this.source = this.fileSource;
-    this.source.connect(this.analyser);
-    if (!this.outputConnected) {
-      this.analyser.connect(this.context.destination);
-      this.outputConnected = true;
+    this.cancelMicrophoneRequest();
+    const id = ++this.sourceRequestId;
+    try {
+      await this.ensureContext();
+      if (id !== this.sourceRequestId) return null;
+      this.disconnectSource();
+      this.fileUrl = URL.createObjectURL(file);
+      this.player.src = this.fileUrl;
+      this.fileSource ||= this.context.createMediaElementSource(this.player);
+      this.source = this.fileSource;
+      this.source.connect(this.analyser);
+      if (!this.outputConnected) {
+        this.analyser.connect(this.context.destination);
+        this.outputConnected = true;
+      }
+      await this.player.play();
+      if (id !== this.sourceRequestId) return null;
+      this.mode = "file";
+      this.resetTiming();
+      return file.name.replace(/\.[^/.]+$/, "");
+    } catch (error) {
+      if (id !== this.sourceRequestId) return null;
+      throw error;
     }
-    await this.player.play();
-    this.mode = "file";
-    this.resetTiming();
-    return file.name.replace(/\.[^/.]+$/, "");
   }
 
   useDemo() {
+    this.cancelMicrophoneRequest();
+    this.sourceRequestId += 1;
     this.disconnectSource();
     this.mode = "demo";
     this.demoStartedAt = performance.now();
@@ -141,8 +212,47 @@ export class AudioEngine {
     this.resetTiming();
   }
 
+  useDemoMusic() {
+    if (this.mode === 'demo-music' && this.demoMusic?.running) {
+      this.cancelMicrophoneRequest(); this.sourceRequestId += 1;
+      return Promise.resolve(DEMO_TRACKS[this.demoMusic.currentIndex]);
+    }
+    if (this.demoMusicRequest?.id === this.sourceRequestId) return this.demoMusicRequest.promise;
+    this.cancelMicrophoneRequest();
+    const id = ++this.sourceRequestId;
+    const promise = (async () => {
+      try {
+        await this.ensureContext();
+        if (id !== this.sourceRequestId) return null;
+        this.demoMusic ||= new DemoPlaylist(this.context, { onTrack: track => {
+          if (this.mode !== 'demo-music') return;
+          this.resetTiming(); this.onDemoTrackChanged?.(track);
+        } });
+        await this.demoMusic.prepare();
+        if (id !== this.sourceRequestId) return null;
+        this.disconnectSource();
+        this.source = this.demoMusic.output;
+        this.source.connect(this.analyser);
+        this.analyser.connect(this.context.destination); this.outputConnected = true;
+        this.mode = 'demo-music'; this.resetTiming();
+        return this.demoMusic.start();
+      } catch (error) {
+        if (id !== this.sourceRequestId) return null;
+        if (this.mode === 'demo-music') {
+          this.disconnectSource(); this.mode = 'demo'; this.resetTiming();
+        }
+        throw error;
+      } finally {
+        if (this.demoMusicRequest?.id === id) this.demoMusicRequest = null;
+      }
+    })();
+    this.demoMusicRequest = { id, promise };
+    return promise;
+  }
+
   setSensitivity(value) {
-    this.sensitivity = Number(value);
+    this.response.set(value);
+    this.sensitivity = this.response.amount;
   }
 
   smooth(current, target, attack = 0.22, release = 0.07) {
@@ -229,7 +339,9 @@ export class AudioEngine {
   update(now = performance.now()) {
     const raw = this.mode === "demo" || !this.analyser ? this.analyseDemo(now) : this.analyseLive(now);
     if (raw.transient) this.recordBeat(now, this.mode === "demo" ? 126 : 0);
-    const gain = this.sensitivity;
+    // Preserve the established default look; the global response is applied
+    // once, after smoothing, to every visual channel below.
+    const gain = DEFAULT_RESPONSE;
     this.values.bass = this.smooth(this.values.bass, clamp(raw.bass * gain), 0.28, 0.075);
     this.values.mid = this.smooth(this.values.mid, clamp(raw.mid * gain), 0.23, 0.065);
     this.values.high = this.smooth(this.values.high, clamp(raw.high * gain), 0.2, 0.06);
@@ -244,6 +356,6 @@ export class AudioEngine {
     this.values.bpm = this.estimatedBpm;
     this.values.beatCount = this.beatCount;
     this.values.barBeat = this.beatCount ? ((this.beatCount - 1) % 4) + 1 : 0;
-    return { ...this.values, bands: { ...this.values.bands }, frequency: this.frequency, waveform: this.waveform };
+    return this.response.apply({ ...this.values, bands: this.values.bands, frequency: this.frequency, waveform: this.waveform }, now);
   }
 }

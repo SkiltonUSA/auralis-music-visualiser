@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { scenes } from "./scenes.js";
 
 describe("scene catalogue", () => {
-  it("removes Orbit while preserving the remaining renderer IDs", () => {
+  it("removes retired scenes while preserving the remaining renderer IDs", () => {
     expect(scenes.map(({ title }) => title)).toEqual([
-      "Bloom", "Prism", "Signal", "Torus", "Warp", "Valley", "Reactor",
-      "Horizon", "Radial", "Arc", "Crystals", "Neon Road", "Tunnel", "Flyover", "Geiss Flow",
+      "Neon City", "Bloom", "Torus", "Valley", "Reactor",
+      "Horizon", "Radial", "Crystals", "Neon Road", "Dark Matter", "Light Tunnel", "Fractal Lotus", "Voxel Tunnel", "Magnetic Silk", "Cyber Tunnel", "Neon March",
     ]);
-    expect(scenes.map(({ renderMode }) => renderMode)).toEqual([0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+    expect(scenes.map(({ renderMode }) => renderMode)).toEqual([25, 0, 4, 6, 7, 8, 9, 11, 12, 17, 18, 19, 20, 21, 22, 24]);
   });
 
   it("keeps rail buttons and scene headings consecutively numbered", () => {
@@ -20,5 +20,10 @@ describe("scene catalogue", () => {
       expect(buttons[index].slice(1)).toEqual([String(index), number, scene.title.toUpperCase()]);
       expect(scene.kicker.startsWith(`SCENE ${number} / `)).toBe(true);
     });
+  });
+  it("keeps the screenshot gallery aligned with the active catalogue",()=>{
+    const manifest=JSON.parse(readFileSync(new URL('../docs/screenshots/manifest.json',import.meta.url),'utf8'));
+    expect(manifest.captures.map(({scene,title,renderMode})=>({scene,title,renderMode})))
+      .toEqual(scenes.map(({title,renderMode},i)=>({scene:i+1,title,renderMode})));
   });
 });

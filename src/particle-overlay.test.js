@@ -12,18 +12,18 @@ describe("scene-specific overlay visibility", () => {
     const p = { clear: vi.fn(), blendMode: vi.fn(), noFill: vi.fn(), push: vi.fn(), pop: vi.fn(), drawingContext: { globalAlpha: 1 }, width: 1200, height: 800 };
     return { overlay, p };
   };
-  it("clears Horizon without drawing waves or particles over its centre", () => {
-    const { overlay, p } = setup(8);
+  it.each([8, 16, 17])("clears mode %s without drawing waves or particles over its centre", mode => {
+    const { overlay, p } = setup(mode);
     overlay.draw(p);
     expect(p.clear).toHaveBeenCalledOnce();
     expect(overlay.drawSpringMesh).not.toHaveBeenCalled();
     expect(overlay.drawParticles).not.toHaveBeenCalled();
   });
-  it("preserves Signal’s waveform and spectrum overlay", () => {
+  it("preserves Signal’s live waveform without duplicating the GPU spectrum", () => {
     const { overlay, p } = setup(3);
     overlay.draw(p);
     expect(overlay.drawSpringMesh).toHaveBeenCalledOnce();
-    expect(overlay.drawSegmentedSpectrum).toHaveBeenCalledOnce();
+    expect(overlay.drawSegmentedSpectrum).not.toHaveBeenCalled();
   });
   it("routes Valley stars to upward perspective motion instead of the shared orbit", () => {
     const overlay = Object.assign(Object.create(ParticleOverlay.prototype), {

@@ -12,8 +12,13 @@ node_modules
 .env
 .env.*
 !.env.example
+# Keep legacy Spotify credentials excluded after removal of the integration.
+spotify-session.enc*
+spotify-config.json*
 dist
 dist-ssr
+release/
+desktop/assets/auralis.icns
 *.local
 .conductor/settings.local.toml
 .conductor/settings.local.json

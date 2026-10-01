@@ -15,12 +15,13 @@ export class HorizonWaves {
     this.emissions = 0;
     this.sinceEmission = .36;
   }
-  update(audio, delta, paused = false, active = true) {
+  update(audio, delta, paused = false, active = true, travelScale = 1) {
     if (paused) return false;
     const dt = Math.max(0, Math.min(delta, .05));
+    const travel = dt * (Number.isFinite(travelScale) ? Math.max(0, Math.min(travelScale, 8)) : 1);
     this.sinceEmission = Math.min(1, this.sinceEmission + dt);
     for (const line of this.lines) {
-      line.x = Math.min(1, line.x + dt / HORIZON_WAVE_LIFETIME);
+      line.x = Math.min(1, line.x + travel / HORIZON_WAVE_LIFETIME);
       if (line.x >= 1) line.y = 0;
     }
     if (!active || !audio.waveform?.length || this.sinceEmission < .3) return false;

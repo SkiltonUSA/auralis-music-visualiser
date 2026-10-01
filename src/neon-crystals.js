@@ -34,56 +34,44 @@ export function addCrystalEdgeAttributes(geometry, shard = false) {
   return geometry;
 }
 
-const vertexShader = /* glsl */ `
+const vertexDeclarations = /* glsl */ `
   attribute vec3 aBarycentric, aEdgeMask, aFaceCenter;
-  varying vec3 vBarycentric, vEdgeMask, vNormal, vView, vTint;
+  varying vec3 vBarycentric, vEdgeMask, vTint;
   varying float vHeight, vFacetArc;
-  void main() {
-    vec4 p = vec4(position, 1.);
+`;
+const vertexEffects = /* glsl */ `
     vec4 facet = vec4(aFaceCenter, 1.);
-    vec3 n = normal;
     vTint = vec3(1.);
     #ifdef USE_INSTANCING
-      p = instanceMatrix * p;
       facet = instanceMatrix * facet;
-      mat3 basis = mat3(instanceMatrix);
-      n /= max(vec3(dot(basis[0], basis[0]), dot(basis[1], basis[1]), dot(basis[2], basis[2])), vec3(.00001));
-      n = basis * n;
     #endif
     #ifdef USE_INSTANCING_COLOR
       vTint = instanceColor;
     #endif
-    vec4 view = modelViewMatrix * p;
-    vNormal = normalize(normalMatrix * n);
-    vView = -view.xyz;
     vHeight = position.y;
     // Common angular distance for core and shards, in the rotating globe's
     // local coordinates. Adjacent faces flash in spatial order, never randomly.
     vec3 direction = facet.xyz / max(length(facet.xyz), .00001);
     vFacetArc = acos(clamp(dot(direction, normalize(vec3(.3, .8, .55))), -1., 1.));
     vBarycentric = aBarycentric; vEdgeMask = aEdgeMask;
-    gl_Position = projectionMatrix * view;
-  }
 `;
-const fragmentShader = /* glsl */ `
+const fragmentDeclarations = /* glsl */ `
   uniform vec3 uEdgeA, uEdgeB;
   uniform vec4 uAudio;
   uniform float uTime, uBeat, uCore;
   uniform vec2 uFacetRipples[${CRYSTAL_RIPPLE_COUNT}];
-  varying vec3 vBarycentric, vEdgeMask, vNormal, vView, vTint;
+  varying vec3 vBarycentric, vEdgeMask, vTint;
   varying float vHeight, vFacetArc;
-  void main() {
+`;
+const fragmentEffects = /* glsl */ `
     vec3 distances = vBarycentric / max(fwidth(vBarycentric), vec3(.00001));
     distances = mix(vec3(10000.), distances, vEdgeMask);
     float edgeDistance = min(distances.x, min(distances.y, distances.z));
     float line = 1. - smoothstep(.45, 1.35, edgeDistance);
     float halo = exp(-edgeDistance * .65) * .20;
     vec3 ink = mix(vTint, mix(uEdgeA, uEdgeB, .25), uCore);
-    vec3 n = normalize(vNormal), view = normalize(vView);
-    float diffuse = max(0., dot(n, normalize(vec3(-.4, .7, .6))));
-    float rim = pow(1. - abs(dot(n, view)), 2.5);
+    float rim = pow(1. - abs(dot(normal, normalize(vViewPosition))), 3.);
     float sweep = pow(.5 + .5 * sin(vHeight * 8. - uTime * 1.4), 6.);
-    vec3 face = vec3(.001, .002, .009) + ink * (.012 + diffuse * .038 + rim * .045);
     float flash = 0.;
     for (int i = 0; i < ${CRYSTAL_RIPPLE_COUNT}; i++) {
       float arrival = abs(vFacetArc - uFacetRipples[i].x);
@@ -92,25 +80,41 @@ const fragmentShader = /* glsl */ `
     }
     // Illuminate the triangle interiors, preserving neon colour and dark gaps
     // between successive beat ripples. Max, not sum, prevents white pile-up.
-    face += mix(ink, uEdgeA, .25) * flash * .85;
+    vec3 face = mix(ink, uEdgeA, .25) * flash * mix(.55, .32, uCore);
     float energy = .85 + uAudio.z * .35 + uBeat * .5 + sweep * .18;
-    // Keep the core subdued so the individual outward-growing shards read.
-    vec3 edge = ink * (line + halo) * energy * mix(1., .23, uCore);
+    // Globe edges inherit the same physical surface shading as their faces;
+    // only the outward-growing shards receive a separate neon outline.
+    vec3 edge = ink * (line + halo) * energy * .72 * (1. - uCore);
     vec3 tip = mix(ink, uEdgeA, .35) * smoothstep(.7, 1., vHeight) * sweep * .055 * (1. - uCore);
-    gl_FragColor = vec4(face + edge + tip, 1.);
-  }
+    totalEmissiveRadiance += face + edge + tip + ink * rim * .08;
 `;
 
 export function createNeonCrystalMaterial(audio, core = false, ripples = null) {
-  return new THREE.ShaderMaterial({
-    vertexShader, fragmentShader, depthTest: true, depthWrite: true,
-    uniforms: {
+  // Physical reflections and clearcoat establish volume; neon is an emissive
+  // layer in the SAME draw, retaining depth, instancing and triangle ripples.
+  // Opaque polished quartz avoids an extra full-scene transmission pass.
+  const material = new THREE.MeshPhysicalMaterial({
+    color: core ? 0x101827 : 0x536077,
+    metalness: core ? .32 : .18, roughness: core ? .36 : .18,
+    clearcoat: core ? .45 : .8, clearcoatRoughness: core ? .22 : .09,
+    ior: 1.55, envMapIntensity: core ? .75 : 1.1,
+    depthTest: true, depthWrite: true,
+  });
+  material.uniforms = {
       uEdgeA: { value: new THREE.Color(CRYSTAL_NEON_PALETTES[0][0]) },
       uEdgeB: { value: new THREE.Color(CRYSTAL_NEON_PALETTES[0][1]) },
       uAudio: { value: audio }, uTime: { value: 0 }, uBeat: { value: 0 }, uCore: { value: core ? 1 : 0 },
       uFacetRipples: { value: ripples?.uniforms || new Float32Array(CRYSTAL_RIPPLE_COUNT * 2) },
-    },
-  });
+  };
+  material.onBeforeCompile = shader => {
+    Object.assign(shader.uniforms, material.uniforms);
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", `#include <common>\n${vertexDeclarations}`)
+      .replace("#include <begin_vertex>", `#include <begin_vertex>\n${vertexEffects}`);
+    shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `#include <common>\n${fragmentDeclarations}`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>\n${fragmentEffects}`);
+  };
+  material.customProgramCacheKey = () => "auralis-physical-neon-v2";
+  return material;
 }
 
 export function updateNeonCrystalMaterial(material, colors, time, beat) {

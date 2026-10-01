@@ -26,10 +26,10 @@ describe("smoke compositions", () => {
     expect(smokeGrid(600, 1000, "high")).toEqual([154, 256]);
   });
   it("only enables the intended smoke scenes", () => {
-    expect([0, 5, 6, 10].every(hasSmoke)).toBe(true);
-    expect([1, 2, 3, 4, 7, 8, 9, 11, 12].some(hasSmoke)).toBe(false);
+    expect([0, 6].every(hasSmoke)).toBe(true);
+    expect([1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12].some(hasSmoke)).toBe(false);
     expect(smokeComposition(6)).toBe("wisps");
-    expect(smokeComposition(10)).toBe("circular");
+    expect(smokeComposition(0)).toBe("circular");
   });
   it("emits nothing during silence and responds independently to FFT bands", () => {
     const emitters = Array.from({ length: SMOKE_EMITTERS }, () => new Vector4());

@@ -218,7 +218,8 @@ export class ParticleOverlay {
       this.mode = layer.mode; this.palette = layer.palette;
       p.push();
       p.drawingContext.globalAlpha = layer.weight;
-      if (this.mode === 3) this.drawSegmentedSpectrum(p, audio, cx, cy, scale);
+      // Signal's shader owns the bars and peaks; retain only its live waveform
+      // here so differently spaced spectra cannot stack over one another.
       this.drawSpringMesh(p, audio, cx, cy, this.mode === 3);
       if (this.mode !== 3) this.drawParticles(p, audio, cx, cy, scale, now);
       p.pop();

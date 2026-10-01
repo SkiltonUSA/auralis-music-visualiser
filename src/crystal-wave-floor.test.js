@@ -48,8 +48,8 @@ describe("Crystals' Horizon wave floor", () => {
     const floor = worlds.entries.get(11).waveFloor;
     const positions = floor.waves.lines.map(line => line.toArray()), emissions = floor.waves.emissions;
     worlds.render(11, audio, .05, 0, [], true);
-    worlds.render(13, audio, .05, 0, [], false);
-    expect(worlds.entries.get(13).waveFloor).toBeUndefined();
+    worlds.render(4, audio, .05, 0, [], false);
+    expect(worlds.entries.get(4).waveFloor).toBeUndefined();
     expect(floor.waves.lines.map(line => line.toArray())).toEqual(positions);
     expect(floor.waves.emissions).toBe(emissions);
     worlds.render(11, audio, .05, 0, [], false);

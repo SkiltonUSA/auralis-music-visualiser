@@ -62,6 +62,7 @@ const finalFragment = /* glsl */ `
   uniform float uHigh;
   uniform float uHistoryReady;
   uniform float uBloomStrength;
+  uniform float uRgbShift;
   uniform float uSceneFx;
 
   float hash21(vec2 p) {
@@ -87,6 +88,7 @@ const finalFragment = /* glsl */ `
     float lensAmount = (.012 + uBass * .026 + uImpact * .034) * uSceneFx;
     vec2 lensUv = clamp(vUv + center * edge * lensAmount, .001, .999);
     vec2 split = center * edge * (1.4 + uImpact * 4.6) / uResolution.x * 4. * uSceneFx;
+    split.x += uRgbShift;
 
     vec3 current;
     current.r = texture2D(uSource, lensUv + split).r;
@@ -193,6 +195,7 @@ export class PostProcessor {
       uHigh: { value: 0 },
       uHistoryReady: { value: 0 },
       uBloomStrength: { value: .48 },
+      uRgbShift: { value: 0 },
       uSceneFx: { value: 1 },
     };
     this.finalMaterial = new THREE.ShaderMaterial({
@@ -244,7 +247,7 @@ export class PostProcessor {
 
   resetHistory() { this.historyReady = false; }
 
-  render(sourceScene, sourceCamera, audio, time, opacity = 1, sceneFx = 1) {
+  render(sourceScene, sourceCamera, audio, time, opacity = 1, sceneFx = 1, profile = {}) {
     const current = this.sceneTargets[this.frameIndex];
     const feedback = this.feedbackTargets[this.frameIndex];
     const previousFeedback = this.feedbackTargets[1 - this.frameIndex];
@@ -282,7 +285,11 @@ export class PostProcessor {
     uniforms.uMid.value = audio.mid;
     uniforms.uHigh.value = audio.high;
     uniforms.uHistoryReady.value = this.historyReady ? 1 : 0;
-    uniforms.uBloomStrength.value = .42 + audio.bass * .2;
+    // Shared by every scene and both sides of a blend, including scenes with
+    // fixed bloom profiles. Keep a restrained range to avoid washing out detail.
+    const response = Math.max(.5 / 1.2, Math.min(2.5 / 1.2, audio.response ?? 1));
+    uniforms.uBloomStrength.value = (profile.bloomStrength ?? (.42 + audio.bass * .2)) * Math.sqrt(response);
+    uniforms.uRgbShift.value = profile.rgbShiftAmount ?? 0;
     uniforms.uSceneFx.value = sceneFx;
     this.pass(this.finalMaterial, feedback);
     this.copyUniforms.uSource.value = feedback.texture;

@@ -28,7 +28,7 @@ describe("Torus beat squares", () => {
     scenes.render(4, beat, .016, 0, [], false);
     scenes.render(13, beat, .016, 0, [], false);
     expect(scenes.entries.get(4).tunnel.uniforms.uTileFlash.value).toBe(1);
-    expect(scenes.entries.get(13).tunnel.uniforms.uTileFlash.value).toBe(0);
+    expect(scenes.entries.has(13)).toBe(false);
     scenes.render(4, {}, .5, 0, [], true);
     expect(scenes.entries.get(4).tunnel.uniforms.uTileFlash.value).toBe(1);
     scenes.dispose(); spectrum.dispose();
@@ -73,16 +73,15 @@ describe("endless torus geometry", () => {
 });
 
 describe("endless tunnel motion", () => {
-  it("retains Torus tube rotation and its upright camera independently of plasma motion", () => {
+  it("retains Torus tube rotation and its upright camera after plasma scene removal", () => {
     const renderer = { getRenderTarget: () => null, setRenderTarget() {}, render() {} };
     const spectrum = new THREE.Texture(), scenes = new ProceduralScenes(renderer, spectrum, 42);
     scenes.render(4, {}, .05, 0, [], false);
     scenes.render(13, {}, .05, 0, [], false);
-    const torus = scenes.entries.get(4).tunnel, plasma = scenes.entries.get(13).tunnel;
+    const torus = scenes.entries.get(4).tunnel;
+    expect(scenes.entries.has(13)).toBe(false);
     expect(torus.uniforms.uTubeRotation.value).toBeCloseTo(.008);
-    expect(plasma.uniforms.uTubeRotation.value).toBeCloseTo(.02475);
     expect(torus.roll).toBe(0);
-    expect(plasma.roll).toBeGreaterThan(0);
     expect(torus.camera.position.length()).toBeCloseTo(TUNNEL_RADIUS);
     expect(torus.camera.up.toArray()).toEqual([0, 1, 0]);
     expect(torus.mesh.material.vertexShader).toContain('float rolled = v + uTubeRotation;');
@@ -115,7 +114,7 @@ describe("endless tunnel motion", () => {
     for (const tunnel of [a, b]) { tunnel.mesh.geometry.dispose(); tunnel.mesh.material.dispose(); }
     spectrum.dispose();
   });
-  it("gives Torus enclosed checker walls while retaining a separate plasma tunnel", () => {
+  it("gives Torus enclosed checker walls without allocating the retired plasma tunnel", () => {
     const renderer = { getRenderTarget: () => null, setRenderTarget() {}, render() {} };
     const spectrum = new THREE.Texture();
     const scenes = new ProceduralScenes(renderer, spectrum, 42);
@@ -133,8 +132,7 @@ describe("endless tunnel motion", () => {
     const distance = torus.tunnel.distance;
     scenes.render(13, {}, .016, 0, [], false);
     expect(torus.tunnel.distance).toBe(distance);
-    expect(scenes.entries.get(13).tunnel.uniforms.uChecker.value).toBe(0);
-    expect(scenes.entries.get(13).tunnel.uniforms.uB.value.getHex()).toBe(0x09d6e8);
+    expect(scenes.entries.has(13)).toBe(false);
     scenes.resize(1600, 900, "high");
     scenes.render(4, {}, 1, 0, [], true);
     expect(torus.tunnel.distance).toBe(distance);
@@ -235,10 +233,12 @@ describe("endless tunnel motion", () => {
     scenes.resize(2400, 1600, "auto");
     expect(scenes.entries.size).toBe(0);
     scenes.render(13, {}, .016, 0, [], false);
-    const entry = scenes.entries.get(13), distance = entry.tunnel.distance, rotation = entry.camera.quaternion.toArray();
+    expect(scenes.entries.size).toBe(0);
+    scenes.render(4, {}, .016, 0, [], false);
+    const entry = scenes.entries.get(4), distance = entry.tunnel.distance, rotation = entry.camera.quaternion.toArray();
     expect(entry.target.width).toBe(1000);
     scenes.resize(1600, 1000, "ultra");
-    scenes.render(13, { level: 1 }, 1, 0, [], true);
+    scenes.render(4, { level: 1 }, 1, 0, [], true);
     expect(entry.tunnel.distance).toBe(distance);
     expect(entry.camera.quaternion.toArray()).toEqual(rotation);
     scenes.render(0, {}, 1, 0, [], false);

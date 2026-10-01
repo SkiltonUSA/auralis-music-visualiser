@@ -88,7 +88,7 @@ try {
     console.log(`Captured ${index + 1}/${scenes.length}: ${scene.title} → ${filename}`);
     if (errors.length) throw Error(`Browser errors: ${JSON.stringify(errors)}`);
   }
-  writeFileSync("docs/screenshots/manifest.json", `${JSON.stringify({ capturedAt: new Date().toISOString(), source: "Built-in demo signal; live browser rendering, visual-only mode", width: 1280, height: 800, quality: "high", captures }, null, 2)}\n`);
+  writeFileSync("docs/screenshots/manifest.json", `${JSON.stringify({ capturedAt: new Date().toISOString(), source: "Bundled original demo music; live browser rendering, visual-only mode", width: 1280, height: 800, quality: "high", captures }, null, 2)}\n`);
   console.log(`Saved ${captures.length} screenshots. Browser errors: ${errors.length}.`);
 } finally {
   await evaluate("window.gallery?.restore?.()").catch(() => {});

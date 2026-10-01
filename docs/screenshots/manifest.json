@@ -7,6 +7,18 @@
   "captures": [
     {
       "scene": 1,
+      "title": "Neon City",
+      "renderMode": 25,
+      "file": "21-neon-city.jpg",
+      "mode": 25,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
+    },
+    {
+      "scene": 2,
       "title": "Bloom",
       "renderMode": 0,
       "file": "01-bloom.jpg",
@@ -14,23 +26,7 @@
       "renderedSeconds": 4.019243835340238
     },
     {
-      "scene": 2,
-      "title": "Prism",
-      "renderMode": 1,
-      "file": "02-prism.jpg",
-      "mode": 1,
-      "renderedSeconds": 2.823867508119406
-    },
-    {
       "scene": 3,
-      "title": "Signal",
-      "renderMode": 3,
-      "file": "03-signal.jpg",
-      "mode": 3,
-      "renderedSeconds": 2.8087004673015974
-    },
-    {
-      "scene": 4,
       "title": "Torus",
       "renderMode": 4,
       "file": "04-torus.jpg",
@@ -38,15 +34,7 @@
       "renderedSeconds": 2.806838344909517
     },
     {
-      "scene": 5,
-      "title": "Warp",
-      "renderMode": 5,
-      "file": "05-warp.jpg",
-      "mode": 5,
-      "renderedSeconds": 2.8204328506502385
-    },
-    {
-      "scene": 6,
+      "scene": 4,
       "title": "Valley",
       "renderMode": 6,
       "file": "06-valley.jpg",
@@ -54,7 +42,7 @@
       "renderedSeconds": 2.8033351438684058
     },
     {
-      "scene": 7,
+      "scene": 5,
       "title": "Reactor",
       "renderMode": 7,
       "file": "07-reactor.jpg",
@@ -62,15 +50,16 @@
       "renderedSeconds": 2.8024051485342696
     },
     {
-      "scene": 8,
+      "scene": 6,
       "title": "Horizon",
       "renderMode": 8,
       "file": "08-horizon.jpg",
       "mode": 8,
-      "renderedSeconds": 2.8374356067247675
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; Aura background, visual-only browser capture"
     },
     {
-      "scene": 9,
+      "scene": 7,
       "title": "Radial",
       "renderMode": 9,
       "file": "09-radial.jpg",
@@ -78,15 +67,7 @@
       "renderedSeconds": 2.8341314673300566
     },
     {
-      "scene": 10,
-      "title": "Arc",
-      "renderMode": 10,
-      "file": "10-arc.jpg",
-      "mode": 10,
-      "renderedSeconds": 2.824808173385957
-    },
-    {
-      "scene": 11,
+      "scene": 8,
       "title": "Crystals",
       "renderMode": 11,
       "file": "11-crystals.jpg",
@@ -94,7 +75,7 @@
       "renderedSeconds": 5.001645560713861
     },
     {
-      "scene": 12,
+      "scene": 9,
       "title": "Neon Road",
       "renderMode": 12,
       "file": "12-neon-road.jpg",
@@ -102,28 +83,88 @@
       "renderedSeconds": 2.8208724443111137
     },
     {
+      "scene": 10,
+      "title": "Dark Matter",
+      "renderMode": 17,
+      "file": "17-dark-matter.jpg",
+      "mode": 17,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
+    },
+    {
+      "scene": 11,
+      "title": "Light Tunnel",
+      "renderMode": 18,
+      "file": "18-light-tunnel.jpg",
+      "mode": 18,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
+    },
+    {
+      "scene": 12,
+      "title": "Fractal Lotus",
+      "renderMode": 19,
+      "file": "19-fractal-lotus.jpg",
+      "mode": 19,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
+    },
+    {
       "scene": 13,
-      "title": "Tunnel",
-      "renderMode": 13,
-      "file": "13-tunnel.jpg",
-      "mode": 13,
-      "renderedSeconds": 2.8413219152236238
+      "title": "Voxel Tunnel",
+      "renderMode": 20,
+      "file": "20-voxel-tunnel.jpg",
+      "mode": 20,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
     },
     {
       "scene": 14,
-      "title": "Flyover",
-      "renderMode": 14,
-      "file": "14-flyover.jpg",
-      "mode": 14,
-      "renderedSeconds": 2.8437707675759043
+      "title": "Magnetic Silk",
+      "renderMode": 21,
+      "file": "18-magnetic-silk.jpg",
+      "mode": 21,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
     },
     {
       "scene": 15,
-      "title": "Geiss Flow",
-      "renderMode": 15,
-      "file": "15-geiss-flow.jpg",
-      "mode": 15,
-      "renderedSeconds": 4.02188105355301
+      "title": "Cyber Tunnel",
+      "renderMode": 22,
+      "file": "19-cyber-tunnel.jpg",
+      "mode": 22,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
+    },
+    {
+      "scene": 16,
+      "title": "Neon March",
+      "renderMode": 24,
+      "file": "20-neon-march.jpg",
+      "mode": 24,
+      "capturedAt": "2026-09-30",
+      "source": "Built-in demo signal; browser rendering, visual-only mode",
+      "width": 1280,
+      "height": 800,
+      "quality": "high"
     }
   ]
 }

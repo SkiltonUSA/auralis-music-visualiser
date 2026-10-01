@@ -1,0 +1,36 @@
+{
+  "appId": "com.studio313.auralis",
+  "productName": "Auralis",
+  "copyright": "Made by Studio313",
+  "directories": { "output": "release", "buildResources": "desktop/assets" },
+  "files": ["dist/**/*", "desktop/**/*.cjs", "package.json", "LICENSE", "THIRD_PARTY_NOTICES.md", "!node_modules/**/*"],
+  "asar": true,
+  "npmRebuild": false,
+  "forceCodeSigning": true,
+  "artifactName": "Auralis-${version}-mac-${arch}.${ext}",
+  "mac": {
+    "target": [{ "target": "dmg", "arch": ["arm64"] }],
+    "category": "public.app-category.music",
+    "icon": "desktop/assets/auralis.icns",
+    "identity": "Dominic Skilton (6673FTYMJM)",
+    "hardenedRuntime": true,
+    "notarize": true,
+    "signIgnore": ["\\.pak$", "\\.asar$", "\\.icns$"],
+    "entitlements": "desktop/entitlements.mac.plist",
+    "entitlementsInherit": "desktop/entitlements.mac.plist",
+    "extendInfo": {
+      "NSMicrophoneUsageDescription": "Auralis by Studio313 uses your microphone to animate the visuals to music around you. Audio is processed on this Mac and is not recorded or uploaded."
+    }
+  },
+  "dmg": {
+    "sign": true,
+    "writeUpdateInfo": false,
+    "title": "Auralis by Studio313",
+    "window": { "width": 540, "height": 380 },
+    "contents": [
+      { "x": 140, "y": 180, "type": "file" },
+      { "x": 400, "y": 180, "type": "link", "path": "/Applications" }
+    ]
+  },
+  "publish": null
+}

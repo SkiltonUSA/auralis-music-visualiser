@@ -1,5 +1,10 @@
 # Third-party notices
 
+Original Auralis code is licensed under the MIT License in `LICENSE`, copyright
+(c) 2026 Studio313. Third-party code and assets retain their respective licences
+and attribution requirements as documented below; they are not relicensed by the
+project's MIT licence.
+
 ## Geiss — design reference
 
 Ryan Geiss's [Geiss](https://github.com/geissomatik/geiss) and his technical
@@ -148,11 +153,11 @@ SOFTWARE.
 ## Roomtone (design reference only)
 
 [Roomtone](https://github.com/0xStoneyStark/roomtone), reviewed at commit
-`398dbc6e6206cc9d2154831aba06f61039bc1380`, inspired Horizon's dim ASCII background,
+`398dbc6e6206cc9d2154831aba06f61039bc1380`, inspired Horizon's former dim ASCII background,
 stationary character lattice, cached glyphs and restrained layered composition.
 The repository did not declare a license at review time. No Roomtone code or
-assets are copied or distributed here: `src/horizon-ascii.js` is an original
-GPU implementation with locally authored pixel glyphs. Roomtone's Jev/TypeSafe
+assets are copied or distributed here. The original local glyph/shader implementation
+has since been removed and replaced by an Aura background. Roomtone's Jev/TypeSafe
 integration is not used; analysis and rendering remain local.
 
 ## The Spirit
@@ -203,3 +208,65 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## User-supplied Valley sky shader
+
+`src/valley-sky.js` adapts the structural-density volume and cinematic grading
+from the shader supplied on 2026-09-30. Its source contains the author/support
+credit **Sabo Sugi (sabosugi)** — Three.js & Shaders:
+https://paypal.com/paypalme/sabosugi.
+The adaptation uses Valley's camera rays, music input, existing renderer and
+quality budgets instead of the standalone canvas and lil-gui controls.
+No licence accompanied this snippet; it is not covered by this project's MIT
+licence. Confirm redistribution permission before a public release containing it.
+
+## Synthcity
+
+Neon City's streaming grid, varied districts, emissive adverts and elevated
+traffic were inspired by [Synthcity](https://github.com/jeffbeene/synthcity),
+reviewed at commit `5a4ee0dd231ce06653a2a9776ed2e36137918d21`.
+Reviewed files: `Generator.js`, `GeneratorItem_CityBlock.js`,
+`GeneratorItem_CityLight.js`, `GeneratorItem_Traffic.js`, `GeneratorUtils.js`,
+`Shaders.js`, `AssetManager.js`, and renderer/generator setup in `src/index.js`.
+
+`src/neon-city.js` and `src/city-assets.js` adapt those ideas to an original
+instanced, audio-reactive renderer. `src/assets/synthcity/` now bundles the
+following unmodified city art from that pinned revision:
+
+- Building models: `s_01_01`, `s_01_03`, `s_02_01`, `s_02_03`, `s_03_01`,
+  `s_04_02`, `s_05_01`, `s_05_02` (OBJ).
+- Advert models: `ads_s_01_01`, `ads_s_01_02`, `ads_s_02_01`, `ads_s_02_02`,
+  `ads_s_03_01`, `ads_s_04_02`, `ads_s_05_01`, `ads_s_05_02` (OBJ).
+- Façade/emissive JPG pairs: `building_01`, `building_02`, `building_04`,
+  `building_07`, `building_09`, `building_10`, with their `_em` maps.
+- Advert JPGs: `ads_01` through `ads_05`, `ads_large_01`, `ads_large_03`;
+  and `sky_night.jpg`.
+
+Geometry is normalized and instanced at runtime; shaders recolor the sign art
+and add music-driven lighting. No upstream music, sound effects, third-party
+vehicle/cockpit assets, player/collision system or bundled dependencies are
+distributed. Attribution and the root MIT license are preserved below and in
+`public/third-party/synthcity-LICENSE.txt` (upstream package metadata separately
+says ISC; this notice follows its explicit LICENSE file).
+
+MIT License
+
+Copyright (c) 2024 Jeff Beene
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

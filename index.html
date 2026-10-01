@@ -4,12 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#05040a" />
-    <meta name="description" content="Auralis is an immersive, microphone-reactive music visualiser built with Three.js, WebGL and p5.js." />
-    <meta property="og:title" content="Auralis — make sound visible" />
+    <meta name="application-name" content="Auralis" />
+    <meta name="author" content="Studio313" />
+    <meta name="description" content="Auralis by Studio313 is an immersive, microphone-reactive music visualiser built with Three.js, WebGL and p5.js." />
+    <meta property="og:site_name" content="Auralis" />
+    <meta property="og:title" content="Auralis by Studio313 — make sound visible" />
     <meta property="og:description" content="Live generative light, shaped by the music around you." />
     <meta property="og:type" content="website" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <title>Auralis — make sound visible</title>
+    <link rel="icon" type="image/svg+xml" href="/auralis.svg" />
+    <title>Auralis by Studio313 — make sound visible</title>
   </head>
   <body>
     <main class="app" id="app">
@@ -18,19 +21,18 @@
       <div class="grain" aria-hidden="true"></div>
       <div class="vignette" aria-hidden="true"></div>
       <div class="cinema-frame" id="cinema-frame" aria-hidden="true">
-        <i></i><i></i><i></i><i></i><span></span>
+        <span></span>
       </div>
 
       <header class="topbar interface" aria-label="Auralis controls">
-        <a class="brand" href="#" aria-label="Auralis home">
+        <a class="brand" href="#" aria-label="Auralis by Studio313 home">
           <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-          <span class="brand-word">AURALIS</span>
-          <span class="brand-edition">LIVE / 01</span>
+          <span class="brand-lockup"><span class="brand-word">AURALIS</span><span class="brand-maker">by Studio313</span></span>
         </a>
 
         <button class="signal-status" id="signal-status" type="button" aria-label="Change audio source">
           <span class="signal-dot" id="signal-dot"></span>
-          <span><small>INPUT</small><strong id="source-name">DEMO SIGNAL</strong></span>
+          <span><small>INPUT</small><strong id="source-name">CHOOSE AUDIO</strong></span>
           <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m3.5 4.5 2.5 3 2.5-3" /></svg>
         </button>
 
@@ -48,49 +50,54 @@
       <nav class="scene-rail interface" aria-label="Scenes enabled in Auto Director rotation">
         <p>ROTATION</p><div class="rail-line"></div>
         <button class="scene-button active" type="button" data-mode="0" aria-pressed="true">
-          <span class="scene-number">01</span><span class="scene-glyph glyph-bloom" aria-hidden="true"></span><span class="scene-name">BLOOM</span>
+          <span class="scene-number">01</span><span class="scene-glyph glyph-neon-city" aria-hidden="true"></span><span class="scene-name">NEON CITY</span>
         </button>
         <button class="scene-button" type="button" data-mode="1" aria-pressed="false">
-          <span class="scene-number">02</span><span class="scene-glyph glyph-prism" aria-hidden="true"></span><span class="scene-name">PRISM</span>
+          <span class="scene-number">02</span><span class="scene-glyph glyph-bloom" aria-hidden="true"></span><span class="scene-name">BLOOM</span>
         </button>
+
         <button class="scene-button" type="button" data-mode="2" aria-pressed="false">
-          <span class="scene-number">03</span><span class="scene-glyph glyph-pulse" aria-hidden="true"></span><span class="scene-name">SIGNAL</span>
+          <span class="scene-number">03</span><span class="scene-glyph glyph-torus" aria-hidden="true"></span><span class="scene-name">TORUS</span>
         </button>
         <button class="scene-button" type="button" data-mode="3" aria-pressed="false">
-          <span class="scene-number">04</span><span class="scene-glyph glyph-torus" aria-hidden="true"></span><span class="scene-name">TORUS</span>
+          <span class="scene-number">04</span><span class="scene-glyph glyph-vector" aria-hidden="true"></span><span class="scene-name">VALLEY</span>
         </button>
         <button class="scene-button" type="button" data-mode="4" aria-pressed="false">
-          <span class="scene-number">05</span><span class="scene-glyph glyph-warp" aria-hidden="true"></span><span class="scene-name">WARP</span>
+          <span class="scene-number">05</span><span class="scene-glyph glyph-reactor" aria-hidden="true"></span><span class="scene-name">REACTOR</span>
         </button>
         <button class="scene-button" type="button" data-mode="5" aria-pressed="false">
-          <span class="scene-number">06</span><span class="scene-glyph glyph-vector" aria-hidden="true"></span><span class="scene-name">VALLEY</span>
+          <span class="scene-number">06</span><span class="scene-glyph glyph-horizon" aria-hidden="true"></span><span class="scene-name">HORIZON</span>
         </button>
         <button class="scene-button" type="button" data-mode="6" aria-pressed="false">
-          <span class="scene-number">07</span><span class="scene-glyph glyph-reactor" aria-hidden="true"></span><span class="scene-name">REACTOR</span>
+          <span class="scene-number">07</span><span class="scene-glyph glyph-radial" aria-hidden="true"></span><span class="scene-name">RADIAL</span>
         </button>
         <button class="scene-button" type="button" data-mode="7" aria-pressed="false">
-          <span class="scene-number">08</span><span class="scene-glyph glyph-horizon" aria-hidden="true"></span><span class="scene-name">HORIZON</span>
+          <span class="scene-number">08</span><span class="scene-glyph glyph-crystals" aria-hidden="true"></span><span class="scene-name">CRYSTALS</span>
         </button>
+
         <button class="scene-button" type="button" data-mode="8" aria-pressed="false">
-          <span class="scene-number">09</span><span class="scene-glyph glyph-radial" aria-hidden="true"></span><span class="scene-name">RADIAL</span>
+          <span class="scene-number">09</span><span class="scene-glyph glyph-road" aria-hidden="true"></span><span class="scene-name">NEON ROAD</span>
         </button>
         <button class="scene-button" type="button" data-mode="9" aria-pressed="false">
-          <span class="scene-number">10</span><span class="scene-glyph glyph-arc" aria-hidden="true"></span><span class="scene-name">ARC</span>
+          <span class="scene-number">10</span><span class="scene-glyph glyph-dark-matter" aria-hidden="true"></span><span class="scene-name">DARK MATTER</span>
         </button>
         <button class="scene-button" type="button" data-mode="10" aria-pressed="false">
-          <span class="scene-number">11</span><span class="scene-glyph glyph-crystals" aria-hidden="true"></span><span class="scene-name">CRYSTALS</span>
+          <span class="scene-number">11</span><span class="scene-glyph glyph-light-tunnel" aria-hidden="true"></span><span class="scene-name">LIGHT TUNNEL</span>
         </button>
         <button class="scene-button" type="button" data-mode="11" aria-pressed="false">
-          <span class="scene-number">12</span><span class="scene-glyph glyph-road" aria-hidden="true"></span><span class="scene-name">NEON ROAD</span>
+          <span class="scene-number">12</span><span class="scene-glyph glyph-fractal-lotus" aria-hidden="true"></span><span class="scene-name">FRACTAL LOTUS</span>
         </button>
         <button class="scene-button" type="button" data-mode="12" aria-pressed="false">
-          <span class="scene-number">13</span><span class="scene-glyph glyph-tunnel" aria-hidden="true"></span><span class="scene-name">TUNNEL</span>
+          <span class="scene-number">13</span><span class="scene-glyph glyph-voxel-tunnel" aria-hidden="true"></span><span class="scene-name">VOXEL TUNNEL</span>
         </button>
         <button class="scene-button" type="button" data-mode="13" aria-pressed="false">
-          <span class="scene-number">14</span><span class="scene-glyph glyph-vector" aria-hidden="true"></span><span class="scene-name">FLYOVER</span>
+          <span class="scene-number">14</span><span class="scene-glyph glyph-magnetic-silk" aria-hidden="true"></span><span class="scene-name">MAGNETIC SILK</span>
         </button>
         <button class="scene-button" type="button" data-mode="14" aria-pressed="false">
-          <span class="scene-number">15</span><span class="scene-glyph glyph-geiss" aria-hidden="true"></span><span class="scene-name">GEISS FLOW</span>
+          <span class="scene-number">15</span><span class="scene-glyph glyph-cyber-tunnel" aria-hidden="true"></span><span class="scene-name">CYBER TUNNEL</span>
+        </button>
+        <button class="scene-button" type="button" data-mode="15" aria-pressed="false">
+          <span class="scene-number">16</span><span class="scene-glyph glyph-neon-march" aria-hidden="true"></span><span class="scene-name">NEON MARCH</span>
         </button>
       </nav>
 
@@ -99,12 +106,11 @@
         <div class="telemetry-row"><span>MID</span><strong id="mid-value">00</strong><i><b id="mid-bar"></b></i></div>
         <div class="telemetry-row"><span>AIR</span><strong id="high-value">00</strong><i><b id="high-bar"></b></i></div>
         <div class="tempo-readout"><span id="beat-orb"></span><div><small id="beat-label">TEMPO / —</small><strong id="tempo-value">CALIBRATING</strong></div></div>
-        <div class="frame-readout"><span>FRAME / 12 BINS</span><code id="frame-data" aria-label="Current frequency frame"></code></div>
+        <div class="fps-readout"><strong id="fps-value" aria-label="Frames per second">— FPS</strong></div>
       </aside>
 
       <section class="scene-title interface" aria-live="polite">
-        <p id="scene-kicker">SCENE 01 / ORGANIC FIELD</p><h1 id="scene-title">Bloom</h1><p id="scene-description">Light unfolding from the low end.</p>
-        <div class="director-status" id="director-status"><i></i><span id="director-text">AUTO DIRECTOR · ARMED</span></div>
+        <p id="scene-kicker">SCENE 01 / ENDLESS METROPOLIS</p><h1 id="scene-title">Neon City</h1>
       </section>
 
       <section class="control-deck interface" aria-label="Playback controls">
@@ -112,10 +118,16 @@
           <svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7v10M15 7v10" /></svg>
           <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 8 5-8 5Z" /></svg>
         </button>
-        <div class="deck-divider"></div><div class="spectrum" id="spectrum" aria-hidden="true"></div><div class="deck-divider"></div>
+        <div class="deck-divider"></div>
+        <svg class="deck-oscilloscope" id="deck-oscilloscope" viewBox="0 0 640 64" preserveAspectRatio="none" role="img" aria-label="Live audio oscilloscope waveform">
+          <path class="scope-grid" d="M0 32H640M128 8V56M256 8V56M384 8V56M512 8V56" />
+          <path class="scope-trace scope-glow" d="M0 32H640" />
+          <path class="scope-trace scope-line" d="M0 32H640" />
+        </svg>
+        <div class="deck-divider"></div>
         <label class="sensitivity-control" for="sensitivity">
           <span><small>RESPONSE</small><strong id="sensitivity-value">1.20×</strong></span>
-          <input id="sensitivity" type="range" min="0.5" max="2.5" value="1.2" step="0.05" />
+          <input id="sensitivity" type="range" min="0.5" max="2.5" value="1.2" step="0.05" aria-label="Global visual response" title="Global intensity: waves, particles, beat pulses and glow across all scenes. Does not change audio volume." />
         </label>
         <div class="deck-divider palette-divider"></div>
         <div class="palette-control" aria-label="Colour palette">
@@ -128,8 +140,6 @@
         </div>
       </section>
 
-      <p class="shortcut-hint interface">ICONS · ROTATION&nbsp;&nbsp; <kbd>A</kbd> AUTO&nbsp;&nbsp; <kbd>H</kbd> HIDE UI&nbsp;&nbsp; <kbd>O</kbd> VISUAL ONLY&nbsp;&nbsp; <kbd>F</kbd> FULLSCREEN&nbsp;&nbsp; <kbd>← →</kbd> PREVIEW</p>
-
       <aside class="settings-panel" id="settings-panel" aria-hidden="true">
         <div class="panel-head">
           <div><small>LIVE ENGINE</small><h2>Source &amp; motion</h2></div>
@@ -138,15 +148,17 @@
         <div class="source-buttons">
           <button class="source-button" id="mic-button-panel" type="button">
             <span class="source-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm-7-4a7 7 0 0 0 14 0M12 18v3M9 21h6" /></svg></span>
-            <span><strong>Mac microphone</strong><small>Listen to the room in real time</small></span>
+            <span><strong data-mic-label>Use microphone</strong><small data-mic-copy>Uses your current system input</small></span>
           </button>
+          <p class="microphone-status" data-mic-status role="status" hidden></p>
+          <button class="microphone-cancel" data-mic-cancel type="button" hidden>Cancel microphone request</button>
           <label class="source-button" for="audio-file">
             <span class="source-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l10-2v13M9 9l10-2M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm10-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /></svg></span>
             <span><strong>Open an audio file</strong><small>MP3, WAV, M4A or FLAC</small></span><input id="audio-file" type="file" accept="audio/*" />
           </label>
           <button class="source-button" id="demo-button-panel" type="button">
             <span class="source-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h3l2-7 4 12 3-9 2 4h2" /></svg></span>
-            <span><strong>Demo signal</strong><small>Explore without an audio source</small></span>
+            <span><strong>Demo music</strong><small>Two original tracks · 50-second rotation</small></span>
           </button>
         </div>
         <div class="panel-section">
@@ -154,12 +166,13 @@
           <button class="switch active" id="particles-toggle" type="button" role="switch" aria-checked="true"><i></i></button>
         </div>
         <div class="panel-section director-setting">
-          <div class="setting-copy"><strong>Auto director</strong><small id="rotation-summary" aria-live="polite">15 / 15 scenes enabled · 16 beats per scene</small></div>
+          <div class="setting-copy"><strong>Auto director</strong><small id="rotation-summary" aria-live="polite">16 / 16 scenes enabled · Per-scene timing</small></div>
           <button class="switch active" id="director-toggle" type="button" role="switch" aria-label="Auto Director" aria-checked="true"><i></i></button>
         </div>
         <p class="rotation-help">Click side icons to include or exclude scenes. Lit dots are on; dashes are off. The bright outline marks the current scene. Use ← → to preview any scene.</p>
+        <button class="source-button" id="open-timers-button" type="button"><span><strong>Scene timers…</strong><small>Open durations and on/off switches</small></span></button>
         <div class="quality-setting">
-          <div class="setting-copy"><strong>Render quality</strong><small id="performance-readout">AUTO · CALIBRATING</small></div>
+          <div class="setting-copy"><strong>Render quality</strong><small id="performance-readout">AUTO QUALITY</small></div>
           <div class="quality-options" role="group" aria-label="Render quality">
             <button class="quality-button active" type="button" data-quality="auto" aria-pressed="true">AUTO</button>
             <button class="quality-button" type="button" data-quality="high" aria-pressed="false">HIGH</button>
@@ -167,20 +180,84 @@
           </div>
         </div>
         <div class="panel-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6l-7-3Z" /></svg><p><strong>Private by design.</strong> Audio is analysed on this device and is never recorded or uploaded.</p></div>
+        <p id="app-version" class="app-version"></p>
+        <button id="about-button" class="text-button" type="button" aria-haspopup="dialog" aria-controls="about-dialog">About Auralis</button>
       </aside>
       <button class="panel-scrim" id="panel-scrim" type="button" aria-label="Close controls"></button>
 
-      <section class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+      <dialog id="about-dialog" aria-labelledby="about-title">
+        <div class="licences-content">
+          <header class="timer-header"><div><small>BY STUDIO313</small><h2 id="about-title">About Auralis</h2></div><button id="close-about" type="button" class="icon-button" aria-label="Close About Auralis" autofocus>×</button></header>
+          <p id="about-version" class="about-version"></p>
+        <section class="credits-section" aria-labelledby="credits-title">
+          <h3 id="credits-title">Credits</h3>
+          <p>Auralis by Studio313. Built with Three.js, WebGL and p5.js, with contributions from the open-source community.</p>
+          <dl class="author-credits">
+            <div><dt>Jeff Beene</dt><dd>Synthcity — city-generation ideas, building models and textures.</dd></div>
+            <div><dt>Edan Kwan</dt><dd>The Spirit — GPU particles and curl-noise helpers.</dd></div>
+            <div><dt>mohamedachrefelouafi / achrefelouafi</dt><dd>GeometryPainterThreeJS — crystal geometry, materials and aurora techniques.</dd></div>
+            <div><dt>Jack Purvis / EmperorJack</dt><dd>Smokey BBQ — fluid-smoke simulation and audio compositions.</dd></div>
+            <div><dt>isoteriksoftware</dt><dd>React Smoke — smoke particles and texture.</dd></div>
+            <div><dt>Rajavanya Subramaniyan / quakeboy</dt><dd>Endless Tunnel — torus geometry and tunnel approach.</dd></div>
+            <div><dt>ZyFou</dt><dd>ProceduralTerrains — terrain grid and skirt construction.</dd></div>
+            <div><dt>Mike Cao</dt><dd>Astrofox — feedback, lens-warp and glow techniques.</dd></div>
+            <div><dt>Sabo Sugi</dt><dd>Three.js &amp; Shaders — procedural visual effects.</dd></div>
+          </dl>
+          <button id="licences-button" class="source-button" type="button" aria-haspopup="dialog" aria-controls="licences-dialog">Licences</button>
+        </section>
+        </div>
+      </dialog>
+
+      <dialog id="scene-timers-dialog" aria-labelledby="scene-timers-title">
+        <div class="timer-content">
+          <header class="timer-header"><div><small>AURALIS / STUDIO313</small><h2 id="scene-timers-title">Scene timers</h2></div><button id="close-timers" type="button" class="icon-button" aria-label="Close scene timers" autofocus>×</button></header>
+          <section class="scene-options" aria-label="Scene timing and rotation">
+            <div class="scene-options-heading"><h3>Scenes</h3><button class="text-button" id="reset-scene-timing" type="button">Reset times</button></div>
+            <p id="scene-timing-help">Set 5–600 seconds, or 0 for 16-beat timing. Press Enter or leave the field to save. Pauses and incoming blends don't count. Switches control Auto Director.</p>
+            <p id="scene-timer-feedback" role="status"></p>
+            <div class="scene-options-columns" aria-hidden="true"><span>SCENE</span><span>SECONDS</span><span>ON</span></div>
+            <div id="scene-options-list"></div>
+          </section>
+          <footer>Changes are saved on this Mac. Esc closes this window.</footer>
+        </div>
+      </dialog>
+
+      <dialog id="licences-dialog" aria-labelledby="licences-title">
+        <div class="licences-content">
+          <header class="timer-header"><div><small>AURALIS / STUDIO313</small><h2 id="licences-title">Licences</h2></div><button id="close-licences" type="button" class="icon-button" aria-label="Close licences" autofocus>×</button></header>
+          <p class="licences-intro">Auralis's original code is MIT licensed. Third-party code and assets retain their respective licences. These documents are bundled with the app and available offline.</p>
+          <h3>Project licence</h3>
+          <pre id="project-licence" tabindex="0" aria-label="Auralis MIT licence"></pre>
+          <h3>Third-party notices</h3>
+          <pre id="third-party-notices" tabindex="0" aria-label="Third-party notices"></pre>
+        </div>
+      </dialog>
+
+      <section class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcome-title" aria-describedby="photosensitivity-warning">
         <div class="welcome-card">
           <div class="welcome-symbol" aria-hidden="true"><span></span><span></span><span></span></div>
-          <p class="eyebrow">AUDIO / REACTIVE / FIELD</p>
+          <p class="eyebrow">Auralis / by Studio313</p>
           <h2 id="welcome-title">Make sound<br /><em>visible.</em></h2>
           <p class="welcome-copy">A living sculpture of colour and motion, shaped in real time by the music around you.</p>
+          <section class="photosensitivity-warning" id="photosensitivity-warning" aria-labelledby="photosensitivity-title">
+            <h3 id="photosensitivity-title">Photosensitivity &amp; epilepsy warning</h3>
+            <p>This visualiser contains flashing lights, rapid colour changes and moving patterns that may trigger seizures in people with photosensitive epilepsy.</p>
+            <p>If you are sensitive to flashing lights or patterns, do not start. Stop using the visualiser if you feel unwell.</p>
+          </section>
           <button class="primary-button" id="mic-button" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm-7-4a7 7 0 0 0 14 0M12 18v3M9 21h6" /></svg>
-            <span><strong>Use Mac microphone</strong><small id="mic-action-copy">Permission is requested once</small></span><b>↗</b>
+            <span><strong data-mic-label>Use microphone</strong><small data-mic-copy>Uses your current system input</small></span><b>↗</b>
           </button>
-          <button class="text-button" id="demo-button" type="button">EXPLORE WITH DEMO SIGNAL <span>→</span></button>
+          <p class="microphone-status" data-mic-status role="status" hidden></p>
+          <button class="microphone-cancel" data-mic-cancel type="button" hidden>Cancel microphone request</button>
+          <button class="primary-button" id="load-music-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13M9 8l11-2" /><ellipse cx="6" cy="18" rx="3" ry="2" /><ellipse cx="17" cy="16" rx="3" ry="2" /></svg>
+            <span><strong>Load music</strong><small>MP3, WAV, M4A or FLAC</small></span><b aria-hidden="true">↗</b>
+          </button>
+          <button class="primary-button" id="demo-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h3l2-7 4 12 3-9 2 4h2" /></svg>
+            <span><strong>Demo music</strong><small>Two original tracks · 50-second rotation</small></span><b aria-hidden="true">↗</b>
+          </button>
           <div class="privacy-line"><i></i><span>ON-DEVICE AUDIO · NOTHING IS RECORDED</span></div>
         </div>
       </section>

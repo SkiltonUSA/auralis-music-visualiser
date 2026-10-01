@@ -7,12 +7,25 @@ import { CrystalSpirit } from "./crystal-spirit.js";
 import { CrystalFacetRipples } from "./crystal-facet-ripples.js";
 import { CrystalWaveFloor } from "./crystal-wave-floor.js";
 import { CrystalTempoSpin } from "./crystal-tempo-spin.js";
+import { createCrystalEnvironment } from "./crystal-studio.js";
+import { AuraScene, AURA_MODE, AURA_QUALITY } from "./aura-scene.js";
+import { DarkMatterScene, DARK_MATTER_MODE, DARK_MATTER_QUALITY } from "./dark-matter.js";
+import { LightTunnel, LIGHT_TUNNEL_MODE } from "./light-tunnel.js";
+import { FractalLotusScene, FRACTAL_LOTUS_MODE, FRACTAL_LOTUS_QUALITY } from "./fractal-lotus.js";
+import { VoxelTunnelScene, VOXEL_TUNNEL_MODE, VOXEL_TUNNEL_QUALITY } from "./voxel-tunnel.js";
+import { MagneticSilkScene, MAGNETIC_SILK_MODE, MAGNETIC_SILK_QUALITY } from "./magnetic-silk.js";
+import { CyberTunnel, CYBER_TUNNEL_MODE, CYBER_TUNNEL_QUALITY } from "./cyber-tunnel.js";
+import { Ferrofluid, FERROFLUID_MODE } from "./ferrofluid.js";
+import { NeonMarchScene, NEON_MARCH_MODE, NEON_MARCH_QUALITY } from "./neon-march.js";
+import { NeonCity, NEON_CITY_MODE } from "./neon-city.js";
 import { addCrystalEdgeAttributes, createNeonCrystalMaterial, updateNeonCrystalMaterial, CRYSTAL_NEON_PALETTES } from "./neon-crystals.js";
 
 // Crystal facets/materials and aurora fold-light equations adapted from
 // GeometryPainterThreeJS (MIT), 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1.
 // Automatic seeded formations and audio-driven animation replace painted strokes.
-export const PROCEDURAL_MODES = [4, 11, 12, 13, 14];
+// Horizon's entry renders its Aura backdrop only; its skyline/floor remain in
+// VisualEngine. Separate entries keep Horizon and standalone Aura independent.
+export const PROCEDURAL_MODES = [4, 8, 11, 12, 14, AURA_MODE, DARK_MATTER_MODE, LIGHT_TUNNEL_MODE, FRACTAL_LOTUS_MODE, VOXEL_TUNNEL_MODE, MAGNETIC_SILK_MODE, CYBER_TUNNEL_MODE, FERROFLUID_MODE, NEON_MARCH_MODE, NEON_CITY_MODE];
 export const isProceduralMode = (mode) => PROCEDURAL_MODES.includes(mode);
 export function seededRandom(seed) {
   let a = seed >>> 0;
@@ -47,9 +60,19 @@ export function createCrystalGeometry(seed = 42) {
   return geometry;
 }
 
-export function createCrystalLayout(seed, clusters = 64) {
+export const CRYSTAL_VARIANTS = 5;
+export function createCrystalCoreGeometry() {
+  // Smooth radial normals with evenly sized triangles for the ripple fronts.
+  return new THREE.IcosahedronGeometry(1.67, 8);
+}
+
+export function createCrystalLayout(seed, clusters = 64, coreGeometry = null) {
   const random = seededRandom(seed), layout = [];
   const up = new THREE.Vector3(0, 1, 0);
+  const geometry = coreGeometry || createCrystalCoreGeometry();
+  const surface = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+  const ray = new THREE.Raycaster(), radial = new THREE.Vector3();
+  const rippleOrigin = new THREE.Vector3(.3, .8, .55).normalize();
   for (let i = 0; i < clusters; i++) {
     const y = random() * 2 - 1, angle = random() * Math.PI * 2;
     const n = new THREE.Vector3(Math.sqrt(1 - y * y) * Math.cos(angle), y, Math.sqrt(1 - y * y) * Math.sin(angle));
@@ -58,13 +81,22 @@ export function createCrystalLayout(seed, clusters = 64) {
     for (let shard = 0; shard < 5; shard++) {
       const theta = random() * Math.PI * 2, spread = shard ? .12 + random() * .16 : 0;
       const position = n.clone().multiplyScalar(1.67).addScaledVector(tangent, Math.cos(theta) * spread).addScaledVector(bitangent, Math.sin(theta) * spread);
-      const direction = n.clone().addScaledVector(tangent, Math.cos(theta) * (shard ? .45 : .1)).addScaledVector(bitangent, Math.sin(theta) * (shard ? .45 : .1)).normalize();
+      radial.copy(position).normalize();
+      ray.set(radial.clone().multiplyScalar(4), radial.clone().negate());
+      const hit = ray.intersectObject(surface, false)[0];
+      // Project onto the actual mesh once, then embed the foot. Tangential
+      // offsets must not leave satellite shards floating above the surface.
+      position.copy(hit.point).addScaledVector(radial, -.035);
+      const direction = radial.clone().addScaledVector(tangent, Math.cos(theta) * (shard ? .28 : .08)).addScaledVector(bitangent, Math.sin(theta) * (shard ? .28 : .08)).normalize();
       layout.push({ position, rotation: new THREE.Quaternion().setFromUnitVectors(up, direction),
         height: shard ? .26 + random() * .5 : .8 + random() * .65,
         width: .7 + random() * .5, band: Math.floor(random() * 220),
-        birth: random() * 2.2, phase: random() * Math.PI * 2, hue: random() });
+        birth: random() * 2.2, phase: random() * Math.PI * 2, hue: random(),
+        variant: (i + shard) % CRYSTAL_VARIANTS, arc: Math.acos(THREE.MathUtils.clamp(radial.dot(rippleOrigin), -1, 1)), growth: 0 });
     }
   }
+  surface.material.dispose();
+  if (!coreGeometry) geometry.dispose();
   return layout;
 }
 
@@ -183,6 +215,56 @@ export class ProceduralScenes {
     const camera = new THREE.PerspectiveCamera(48, 1, .1, 100);
     const target = new THREE.WebGLRenderTarget(2, 2, { type: THREE.HalfFloatType, depthBuffer: true, stencilBuffer: false });
     const entry = { scene, camera, target, time: 0, age: 0, audio: new THREE.Vector4(), palette: -1, rendered: false };
+    if (mode === NEON_CITY_MODE) {
+      entry.neonCity = new NeonCity(scene, camera, seed);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === NEON_MARCH_MODE) {
+      entry.neonMarch = new NeonMarchScene(scene);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === FERROFLUID_MODE) {
+      entry.ferrofluid = new Ferrofluid(scene, camera);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === CYBER_TUNNEL_MODE) {
+      entry.cyberTunnel = new CyberTunnel(scene, camera, this.renderer.domElement);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === MAGNETIC_SILK_MODE) {
+      entry.magneticSilk = new MagneticSilkScene(scene);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === VOXEL_TUNNEL_MODE) {
+      entry.voxelTunnel = new VoxelTunnelScene(scene);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === FRACTAL_LOTUS_MODE) {
+      entry.fractalLotus = new FractalLotusScene(scene);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === LIGHT_TUNNEL_MODE) {
+      entry.lightTunnel = new LightTunnel(scene, camera);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === DARK_MATTER_MODE) {
+      entry.darkMatter = new DarkMatterScene(scene);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
+    if (mode === 8 || mode === AURA_MODE) {
+      entry.aura = new AuraScene(scene);
+      this.entries.set(mode, entry); this.sizeEntry(entry);
+      return entry;
+    }
     if (mode === 14) {
       entry.flyover = new TerrainFlyover(scene, camera, seededRandom(seed));
       this.entries.set(mode, entry); this.sizeEntry(entry);
@@ -193,25 +275,33 @@ export class ProceduralScenes {
       this.entries.set(mode, entry); this.sizeEntry(entry);
       return entry;
     }
-    if (mode === 4 || mode === 13) {
-      entry.tunnel = new EndlessTunnel(scene, camera, this.spectrum, seededRandom(seed), mode === 4 ? "checker" : "plasma");
+    if (mode === 4) {
+      entry.tunnel = new EndlessTunnel(scene, camera, this.spectrum, seededRandom(seed), "checker");
       this.entries.set(mode, entry); this.sizeEntry(entry);
       return entry;
     }
     scene.add(stars(seed));
     if (mode === 11) {
+      entry.crystalSpectrum = new Uint8Array(256);
       entry.waveFloor = new CrystalWaveFloor(scene);
       entry.anchor = new THREE.Group(); scene.add(entry.anchor);
       entry.facetRipples = new CrystalFacetRipples();
+      entry.environment = createCrystalEnvironment();
+      scene.environment = entry.environment;
       entry.coreMaterial = createNeonCrystalMaterial(entry.audio, true, entry.facetRipples);
-      const core = new THREE.Mesh(addCrystalEdgeAttributes(new THREE.IcosahedronGeometry(1.67, 1)), entry.coreMaterial);
+      const core = new THREE.Mesh(addCrystalEdgeAttributes(createCrystalCoreGeometry()), entry.coreMaterial);
       entry.anchor.add(core);
-      entry.layout = createCrystalLayout(seed);
+      entry.layout = createCrystalLayout(seed, 64, core.geometry);
       entry.material = createNeonCrystalMaterial(entry.audio, false, entry.facetRipples);
-      entry.crystals = new THREE.InstancedMesh(addCrystalEdgeAttributes(createCrystalGeometry(seed), true), entry.material, entry.layout.length);
-      entry.crystals.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      entry.crystals.frustumCulled = false;
-      entry.anchor.add(entry.crystals);
+      entry.crystalBatches = Array.from({ length: CRYSTAL_VARIANTS }, (_, variant) => {
+        const indices = entry.layout.flatMap((crystal, i) => crystal.variant === variant ? [i] : []);
+        const mesh = new THREE.InstancedMesh(addCrystalEdgeAttributes(createCrystalGeometry(seed + variant * 971), true), entry.material, indices.length);
+        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        mesh.frustumCulled = false;
+        entry.anchor.add(mesh);
+        return { mesh, indices };
+      });
+      entry.crystals = entry.crystalBatches[0].mesh;
       entry.beatGrowth = new CrystalBeatGrowth();
       entry.tempoSpin = new CrystalTempoSpin();
       entry.smokeVeils = new CrystalSmokeVeils(scene, seededRandom(seed ^ 0x5a17));
@@ -223,13 +313,35 @@ export class ProceduralScenes {
   }
   sizeEntry(entry) {
     entry.flyover?.setQuality(this.quality);
-    const cap = { auto: 1000, high: 1400, ultra: 1800 }[this.quality] || 1000;
+    entry.cyberTunnel?.setQuality(this.quality);
+    const cap = entry.neonMarch ? (NEON_MARCH_QUALITY[this.quality] || NEON_MARCH_QUALITY.auto).edge
+      : entry.aura ? (AURA_QUALITY[this.quality] || AURA_QUALITY.auto).edge
+      : entry.darkMatter ? (DARK_MATTER_QUALITY[this.quality] || DARK_MATTER_QUALITY.auto).edge
+      : entry.fractalLotus ? (FRACTAL_LOTUS_QUALITY[this.quality] || FRACTAL_LOTUS_QUALITY.auto).edge
+      : entry.voxelTunnel ? (VOXEL_TUNNEL_QUALITY[this.quality] || VOXEL_TUNNEL_QUALITY.auto).edge
+      : entry.magneticSilk ? (MAGNETIC_SILK_QUALITY[this.quality] || MAGNETIC_SILK_QUALITY.auto).edge
+      : entry.cyberTunnel ? (CYBER_TUNNEL_QUALITY[this.quality] || CYBER_TUNNEL_QUALITY.auto).edge
+      : { auto: 1000, high: 1400, ultra: 1800 }[this.quality] || 1000;
     const ratio = Math.min(1, cap / Math.max(this.width, this.height));
     entry.target.setSize(Math.max(2, Math.round(this.width * ratio)), Math.max(2, Math.round(this.height * ratio)));
+    entry.aura?.resize(entry.target.width, entry.target.height, this.quality);
+    entry.darkMatter?.resize(entry.target.width, entry.target.height, this.quality);
+    entry.lightTunnel?.resize(entry.target.width, entry.target.height, this.quality);
+    entry.ferrofluid?.resize(entry.target.width, entry.target.height, this.quality);
+    entry.neonMarch?.resize(entry.target.width, entry.target.height);
+    entry.neonCity?.resize(entry.target.width, entry.target.height, this.quality);
+    entry.fractalLotus?.resize(entry.target.width, entry.target.height, this.quality);
+    entry.voxelTunnel?.resize(entry.target.width, entry.target.height, this.quality);
+    entry.magneticSilk?.resize(entry.target.width, entry.target.height, this.quality);
     entry.spirit?.setQuality(this.quality, entry.target.height);
     entry.waveFloor?.resize(entry.target.width, entry.target.height);
     entry.camera.aspect = this.width / Math.max(1, this.height); entry.camera.updateProjectionMatrix();
-    if (entry.crystals) entry.crystals.count = { auto: 160, high: 240, ultra: 320 }[this.quality] || 160;
+    if (entry.crystals) {
+      const count = { auto: 160, high: 240, ultra: 320 }[this.quality] || 160;
+      for (const batch of entry.crystalBatches || [{ mesh: entry.crystals, indices: entry.layout.map((_, i) => i) }]) {
+        batch.mesh.count = batch.indices.filter(i => i < count).length;
+      }
+    }
     const curtainCount = { auto: 2, high: 4, ultra: 6 }[this.quality] || 2;
     if (entry.curtains) entry.curtains.forEach((mesh, i) => { mesh.visible = i < curtainCount; });
     entry.rendered = false;
@@ -240,6 +352,16 @@ export class ProceduralScenes {
   }
   update(entry, audio, delta, palette, spectrum) {
     const dt = Math.max(0, Math.min(.05, delta));
+    if (entry.aura) { entry.aura.update(audio, dt, palette); return; }
+    if (entry.darkMatter) { entry.darkMatter.update(audio, dt, palette); return; }
+    if (entry.lightTunnel) { entry.lightTunnel.update(audio, dt, palette); return; }
+    if (entry.ferrofluid) { entry.ferrofluid.update(audio, dt, palette, spectrum); return; }
+    if (entry.neonMarch) { entry.neonMarch.update(audio, dt, palette); return; }
+    if (entry.neonCity) { entry.neonCity.update(audio, dt, palette, spectrum); return; }
+    if (entry.fractalLotus) { entry.fractalLotus.update(audio, dt, palette); return; }
+    if (entry.voxelTunnel) { entry.voxelTunnel.update(audio, dt, palette); return; }
+    if (entry.magneticSilk) { entry.magneticSilk.update(audio, dt, palette); return; }
+    if (entry.cyberTunnel) { entry.cyberTunnel.update(audio, dt, palette); return; }
     if (entry.flyover) { entry.flyover.update(audio, dt, palette); return; }
     if (entry.road) { entry.road.update(audio, dt, palette); return; }
     if (entry.tunnel) { entry.tunnel.update(audio, dt, palette); return; }
@@ -268,23 +390,27 @@ export class ProceduralScenes {
       entry.anchor.rotation.z = .04;
       updateNeonCrystalMaterial(entry.material, colors, entry.time, beatGrowth);
       if (entry.coreMaterial) updateNeonCrystalMaterial(entry.coreMaterial, colors, entry.time, beatGrowth * .35);
-      for (let i = 0; i < entry.crystals.count; i++) {
-        const crystal = entry.layout[i];
-        const bin = (spectrum[crystal.band] || 0) / 255;
-        const birth = THREE.MathUtils.smoothstep(entry.age - crystal.birth, 0, 1.1);
-        const baseSize = crystal.height * birth * (.65 + bin * .6);
-        // Grow each shard outward from its fixed surface anchor, primarily
-        // along its length. Never scale or translate the globe itself.
-        const height = Math.min(2.25, baseSize * (1 + beatGrowth * (.75 + crystal.hue * .25)));
-        const width = baseSize * crystal.width * (1 + beatGrowth * .18);
-        this.scale.set(width, height, width);
-        this.matrix.compose(crystal.position, crystal.rotation, this.scale);
-        entry.crystals.setMatrixAt(i, this.matrix);
-        this.color.copy(entry.material.uniforms.uEdgeA.value).lerp(entry.material.uniforms.uEdgeB.value, crystal.hue);
-        entry.crystals.setColorAt(i, this.color);
+      for (const batch of entry.crystalBatches || [{ mesh: entry.crystals, indices: entry.layout.map((_, i) => i) }]) {
+        for (let i = 0; i < batch.mesh.count; i++) {
+          const crystal = entry.layout[batch.indices[i]];
+          const bin = (spectrum[crystal.band] || 0) / 255;
+          const birth = THREE.MathUtils.smoothstep(entry.age - crystal.birth, 0, 1.1);
+          const baseSize = crystal.height * birth * (.65 + bin * .6);
+          // The light front reaches shards in surface order. Grow outward
+          // smoothly from fixed bases; never scale or bounce the globe.
+          if (entry.facetRipples) crystal.growth = THREE.MathUtils.lerp(crystal.growth, entry.facetRipples.growthAt(crystal.arc), 1 - Math.exp(-dt * 18));
+          const growth = entry.facetRipples ? crystal.growth : beatGrowth;
+          const height = Math.min(2.25, baseSize * (1 + growth * (.9 + crystal.hue * .3)));
+          const width = baseSize * crystal.width * (1 + growth * .14);
+          this.scale.set(width, height, width);
+          this.matrix.compose(crystal.position, crystal.rotation, this.scale);
+          batch.mesh.setMatrixAt(i, this.matrix);
+          this.color.copy(entry.material.uniforms.uEdgeA.value).lerp(entry.material.uniforms.uEdgeB.value, crystal.hue);
+          batch.mesh.setColorAt(i, this.color);
+        }
+        batch.mesh.instanceMatrix.needsUpdate = true;
+        batch.mesh.instanceColor.needsUpdate = true;
       }
-      entry.crystals.instanceMatrix.needsUpdate = true;
-      entry.crystals.instanceColor.needsUpdate = true;
       entry.camera.position.set(Math.sin(entry.time * .07) * .5, .5, 9.6);
       entry.camera.lookAt(0, 0, 0);
       entry.waveFloor?.update(audio, dt, colors, entry.camera);
@@ -296,8 +422,19 @@ export class ProceduralScenes {
     const previous = this.renderer.getRenderTarget();
     try {
       const entry = this.entries.get(mode) || this.create(mode);
+      if(entry.neonCity?.assets.dirty){entry.rendered=false;entry.neonCity.assets.dirty=false;}
+      if (entry.crystalSpectrum) {
+        // Resizing invalidates the render target, not the paused pose. Keep a
+        // private copy: the shared FFT buffer continues changing during pause.
+        if (!paused) {
+          for (let i = 0; i < entry.crystalSpectrum.length; i++) entry.crystalSpectrum[i] = spectrum[i] || 0;
+        }
+        spectrum = entry.crystalSpectrum;
+      }
       if (!paused || !entry.rendered) this.update(entry, audio, paused ? 0 : delta, palette, spectrum);
       if (paused && entry.rendered) return;
+      entry.neonCity?.aura.render(this.renderer);
+      entry.cyberTunnel?.renderReflections(this.renderer);
       this.renderer.setRenderTarget(entry.target); this.renderer.render(entry.scene, entry.camera);
       entry.rendered = true;
     } finally { this.renderer.setRenderTarget(previous); }
@@ -308,6 +445,11 @@ export class ProceduralScenes {
       // Spirit owns its simulation targets and removes its Points before the
       // shared traversal, so no GPU resource is disposed twice.
       entry.spirit?.dispose();
+      entry.cyberTunnel?.dispose();
+      entry.ferrofluid?.dispose();
+      entry.neonCity?.dispose();
+      entry.darkMatter?.dispose();
+      entry.neonMarch?.dispose();
       entry.waveFloor?.dispose();
       entry.scene.traverse((object) => {
         if (object.geometry) geometries.add(object.geometry);

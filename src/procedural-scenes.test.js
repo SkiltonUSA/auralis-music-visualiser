@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import * as THREE from "three";
 import { CrystalBeatGrowth } from "./crystal-atmosphere.js";
 import { createNeonCrystalMaterial, CRYSTAL_NEON_PALETTES } from "./neon-crystals.js";
-import { seededRandom, createCrystalGeometry, createCrystalLayout, createAuroraGeometry, addAuroraCurtains, ProceduralScenes, isProceduralMode } from "./procedural-scenes.js";
+import { seededRandom, createCrystalGeometry, createCrystalCoreGeometry, createCrystalLayout, createAuroraGeometry, addAuroraCurtains, ProceduralScenes, isProceduralMode } from "./procedural-scenes.js";
 
 describe("procedural generation", () => {
   it("repeats a seed without repeating different seeds", () => {
@@ -28,12 +28,29 @@ describe("procedural generation", () => {
     expect(layout).toEqual(createCrystalLayout(123));
     expect(layout).not.toEqual(createCrystalLayout(124));
     for (const shard of layout) {
-      expect(shard.position.length()).toBeGreaterThanOrEqual(1.669);
-      expect(shard.position.length()).toBeLessThan(1.71);
+      expect(shard.position.length()).toBeGreaterThan(1.62);
+      expect(shard.position.length()).toBeLessThan(1.636);
       expect(shard.rotation.length()).toBeCloseTo(1);
       expect(shard.band).toBeGreaterThanOrEqual(0);
       expect(shard.band).toBeLessThan(256);
     }
+  });
+  it("embeds every shard in the actual smooth core, with outward growth and spatial wave coordinates", () => {
+    const geometry = createCrystalCoreGeometry();
+    const surface = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+    const ray = new THREE.Raycaster();
+    expect(geometry.attributes.position.count / 3).toBe(1620);
+    for (const crystal of createCrystalLayout(42, 64, geometry)) {
+      const radial = crystal.position.clone().normalize();
+      ray.set(radial.clone().multiplyScalar(4), radial.clone().negate());
+      const hit = ray.intersectObject(surface)[0];
+      expect(hit.point.length() - crystal.position.length()).toBeCloseTo(.035, 6);
+      const growthDirection = new THREE.Vector3(0, 1, 0).applyQuaternion(crystal.rotation);
+      expect(growthDirection.dot(radial)).toBeGreaterThan(.9);
+      expect(crystal.arc).toBeGreaterThanOrEqual(0);
+      expect(crystal.arc).toBeLessThanOrEqual(Math.PI);
+    }
+    geometry.dispose(); surface.material.dispose();
   });
   it("builds seeded curved curtain anchors with full-height UVs", () => {
     const a = createAuroraGeometry(1, 0), b = createAuroraGeometry(2, 0);
@@ -175,7 +192,7 @@ describe("procedural scene lifecycle", () => {
     expect(renderer.target).toBe(previous);
     expect(isProceduralMode(11)).toBe(true);
     expect(isProceduralMode(12)).toBe(true);
-    expect(isProceduralMode(13)).toBe(true);
+    expect(isProceduralMode(13)).toBe(false);
     expect(isProceduralMode(14)).toBe(true);
     expect(isProceduralMode(15)).toBe(false);
     expect(isProceduralMode(10)).toBe(false);

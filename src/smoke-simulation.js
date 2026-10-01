@@ -6,7 +6,7 @@ import * as THREE from "three";
 // RGB dye is advected separately, as in upstream's RGB Spectrum composition.
 export const SMOKE_STEP = 1 / 30;
 export const SMOKE_EMITTERS = 16;
-export const hasSmoke = (mode) => [0, 5, 6, 10].includes(mode);
+export const hasSmoke = (mode) => [0, 6].includes(mode);
 export const smokeComposition = (mode) => mode === 6 ? "wisps" : "circular";
 
 export function smokeGrid(width, height, quality = "auto") {
@@ -21,7 +21,7 @@ export function fillSmokeEmitters(emitters, forces, spectrum, audio, time, aspec
   const circular = composition === "circular";
   const wisps = composition === "wisps";
   const bass = Math.min(1, Math.max(0, audio.bass || 0));
-  const hit = audio.transient ? 1 : Math.min(1, Math.max(0, audio.beat || 0));
+  const hit = audio.transient ? Math.min(1, audio.response ?? 1) : Math.min(1, Math.max(0, audio.beat || 0));
   for (let i = 0; i < SMOKE_EMITTERS; i++) {
     const f = i / (SMOKE_EMITTERS - 1);
     const band = circular || wisps ? (i % 8) / 7 : Math.abs(f * 2 - 1);

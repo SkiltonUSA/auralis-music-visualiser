@@ -12,6 +12,43 @@ const brightness = (ripples, arc) => {
 };
 
 describe("crystal triangle ripples", () => {
+  it("finishes the far-side growth release after the light has left the globe", () => {
+    for (const fps of [30, 60, 120]) {
+      const ripples = new CrystalFacetRipples();
+      let previous = 0, largestDrop = 0, lateGrowth = 0;
+      for (let frame = 0; frame < fps * 1.4; frame++) {
+        ripples.update(frame === 0 ? beat : {}, 1 / fps);
+        const growth = ripples.growthAt(Math.PI);
+        largestDrop = Math.max(largestDrop, previous - growth);
+        previous = growth;
+        const time = (frame + 1) / fps;
+        if (time >= .95 && time <= 1.02) {
+          lateGrowth = Math.max(lateGrowth, growth);
+          expect(brightness(ripples, Math.PI)).toBe(0);
+        }
+      }
+      expect(lateGrowth).toBeGreaterThan(.7);
+      expect(largestDrop).toBeLessThan(.25);
+      expect(previous).toBe(0);
+      expect(ripples.emissions).toBe(1);
+    }
+  });
+  it("grows shards successively behind the light front, with bounded overlapping beats", () => {
+    const ripples = new CrystalFacetRipples();
+    expect(ripples.growthAt(0)).toBe(0);
+    ripples.update(beat, .05);
+    for (let i = 0; i < 2; i++) ripples.update({}, .05);
+    expect(ripples.growthAt(0)).toBeGreaterThan(.7);
+    expect(ripples.growthAt(1)).toBe(0);
+    for (let i = 0; i < 5; i++) ripples.update({}, .05);
+    expect(ripples.growthAt(0)).toBe(0);
+    expect(ripples.growthAt(1)).toBeGreaterThan(.7);
+    for (let i = 0; i < 40; i++) ripples.update({ ...beat, beatCount: i }, .05);
+    for (let arc = 0; arc < Math.PI; arc += .05) expect(ripples.growthAt(arc)).toBeLessThanOrEqual(.901);
+    for (let i = 0; i < 40; i++) ripples.update({}, .05);
+    expect(ripples.growthAt(1)).toBe(0);
+    expect(ripples.growthAt(NaN)).toBe(0);
+  });
   it("lights successive surface distances in order, not all faces together", () => {
     const ripples = new CrystalFacetRipples();
     ripples.update(beat, .05);

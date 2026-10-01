@@ -7,9 +7,21 @@ import { ProceduralScenes, isProceduralMode } from "./procedural-scenes.js";
 import { SceneBlend } from "./scene-blend.js";
 import { SceneMixer } from "./scene-mixer.js";
 import { HORIZON_COLUMNS, HORIZON_BANDS } from "./horizon-spectrum.js";
-import { createHorizonAsciiAtlas, horizonAsciiGrid, horizonAsciiGLSL } from "./horizon-ascii.js";
 import { HorizonWaves, HORIZON_WAVE_COUNT, HORIZON_WAVE_SAMPLES, horizonWavesGLSL } from "./horizon-waves.js";
-import { GeissFlow, GEISS_MODE } from "./geiss-flow.js";
+import { GeissFlow, GEISS_MODE, geissTunnelRingsGLSL } from "./geiss-flow.js";
+import { AURA_MODE, horizonAuraGLSL } from "./aura-scene.js";
+import { DARK_MATTER_MODE } from "./dark-matter.js";
+import { LIGHT_TUNNEL_MODE } from "./light-tunnel.js";
+import { FRACTAL_LOTUS_MODE } from "./fractal-lotus.js";
+import { VOXEL_TUNNEL_MODE } from "./voxel-tunnel.js";
+import { MAGNETIC_SILK_MODE } from "./magnetic-silk.js";
+import { CYBER_TUNNEL_MODE, CYBER_TUNNEL_SETTINGS } from "./cyber-tunnel.js";
+import { FERROFLUID_MODE } from "./ferrofluid.js";
+import { NEON_MARCH_MODE } from "./neon-march.js";
+import { NEON_CITY_MODE } from "./neon-city.js";
+import { signalSceneGLSL } from "./signal-scene.js";
+import { valleySkyGLSL, VALLEY_SKY_STEPS } from "./valley-sky.js";
+import { backdropSpectrumGLSL } from './backdrop-spectrum.js';
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -25,8 +37,7 @@ const fragmentShader = /* glsl */ `
   uniform float uFlightTime;
   uniform float uValleySteps;
   uniform float uHorizonBands[${HORIZON_COLUMNS / 2}];
-  uniform sampler2D uHorizonAscii;
-  uniform vec2 uHorizonAsciiGrid;
+  uniform sampler2D uHorizonAura;
   uniform sampler2D uHorizonWaveforms;
   uniform vec4 uHorizonLines[${HORIZON_WAVE_COUNT}];
   uniform float uRadialAngle;
@@ -52,9 +63,13 @@ const fragmentShader = /* glsl */ `
   uniform sampler2D uTorusScene;
   uniform sampler2D uCrystalScene;
   uniform sampler2D uRoadScene;
-  uniform sampler2D uEndlessScene;
   uniform sampler2D uFlyoverScene;
+  uniform sampler2D uAuraScene;
+  uniform sampler2D uAdditionalScene;
   uniform sampler2D uGeissScene;
+  uniform sampler2D uBloomFlow;
+  uniform vec3 uGeissPrimary, uGeissSecondary;
+  ${geissTunnelRingsGLSL}
   uniform sampler2D uBloomWaveforms;
   uniform vec4 uBloomRings[${BLOOM_RING_COUNT}];
   uniform vec2 uSmokeTexel;
@@ -98,18 +113,18 @@ const fragmentShader = /* glsl */ `
     vec3 color = uPalette < .5 ? violet : (uPalette < 1.5 ? ember : (uPalette < 2.5 ? aqua : signal));
     return color * intensity;
   }
+  ${backdropSpectrumGLSL}
   vec3 colorBarBackdrop(vec2 p, float t, float sceneLuminance) {
-    float aspect = uResolution.x / uResolution.y;
-    float normalizedX = clamp(p.x / aspect * .5 + .5, 0., .9999);
-    float columns = mix(42., 68., smoothstep(900., 1800., uResolution.x));
+    float normalizedX = clamp(gl_FragCoord.x / uResolution.x, 0., .9999);
+    float columns = floor(mix(42., 68., smoothstep(900., 1800., uResolution.x)) + .5);
     float cell = normalizedX * columns;
     float id = floor(cell);
     float cellX = fract(cell);
     float gap = mix(.16, .28, smoothstep(42., 68., columns));
     float bodyX = smoothstep(gap, gap + .035, cellX) * (1. - smoothstep(1. - gap - .035, 1. - gap, cellX));
-    float frequencyPosition = id / max(1., columns - 1.);
-    float bin = spectrumAt(frequencyPosition * frequencyPosition);
-    float held = peakAt(frequencyPosition * frequencyPosition);
+    float frequencyPosition = backdropBand(id, columns);
+    float bin = spectrumAt(frequencyPosition);
+    float held = peakAt(frequencyPosition);
     float baseline = -.72;
     float barHeight = .055 + bin * (.62 + uLevel * .32);
     float top = baseline + barHeight;
@@ -131,6 +146,7 @@ const fragmentShader = /* glsl */ `
     return color;
   }
   float barSceneVisibility(float mode) {
+    if (mode > 2.5 && mode < 3.5) return 0.; // Signal owns its spectrum; avoid a second bar layer.
     float torus = step(3.5, mode) * (1. - step(4.5, mode));
     float reactor = step(6.5, mode) * (1. - step(7.5, mode));
     float horizon = step(7.5, mode) * (1. - step(8.5, mode));
@@ -210,113 +226,8 @@ const fragmentShader = /* glsl */ `
     return color;
   }
 
-  vec3 liquidChrome(vec2 p, float t) {
-    vec2 q = vec2(abs(p.x), p.y);
-    vec3 color = vec3(0.);
-    for (int i = 0; i < 7; i++) {
-      float fi = float(i);
-      float phase = t * (.12 + fi * .006) + fi * 2.399;
-      float lane = .12 + fi * .105;
-      vec2 center = vec2(lane + sin(phase * .73) * .045, sin(phase) * (.17 + fi * .055));
-      float size = .035 + mod(fi, 3.) * .011 + uBass * .018;
-      float d = length(q - center);
-      float body = smoothstep(size, size * .08, d);
-      float shell = .0035 / (abs(d - size) + .0035);
-      vec2 lightPoint = center - vec2(size * .26, size * .34);
-      float specular = smoothstep(size * .34, 0., length(q - lightPoint));
-      vec3 metal = mix(vec3(.025, .04, .075), chroma(fi * .13 + t * .018, 1.), .24);
-      color += metal * body * (.4 + specular * 2.8);
-      color += chroma(fi * .12 + t * .025, shell * (.07 + uHigh * .08));
-      color += vec3(2.4, 2.1, 1.7) * specular * (.32 + uBeat * .38);
-    }
-    return color;
-  }
-
-  vec3 prismScene(vec2 p, float t) {
-    float segments = 8. + floor(uHigh * 4. + uAirHit * 2.);
-    p = kaleido(p, segments, -t * (.018 + uMid * .05), -.22 - uMid * .55 - uMidHit * .75);
-    float angle = atan(p.y, p.x), radius = length(p), rays = 0.;
-    vec3 color = vec3(0.);
-    for (int i = 0; i < 9; i++) {
-      float fi = float(i);
-      float bin = spectrumAt(.025 + fi * .065);
-      float blade = abs(p.y - p.x * (.11 + fi * .105) - sin(t * .27 + fi) * (.02 + bin * .075));
-      float limit = smoothstep(.95 + uBass * .2, .06, radius);
-      float streak = (.0045 + bin * .004) / (blade + .007) * limit * smoothstep(.0, .24 + fi * .06, radius);
-      color += chroma(fi * .1 + angle * .35 + t * .035 + bin * .12, streak * (.16 + uMid * .42 + bin * .42));
-      rays += streak;
-    }
-    vec2 cells = p * (7. + uHigh * 7. + uAirHit * 4.);
-    float facets = abs(fract(cells.x + cells.y + sin(t * .2)) - .5) * abs(fract(cells.x - cells.y) - .5);
-    color += chroma(facets + angle, pow(facets, 1.5) * .55 * smoothstep(1.1, .05, radius));
-    for (int i = 0; i < 6; i++) {
-      float fi = float(i);
-      float depth = fract(fi / 6. + t * .045);
-      float ringRadius = .12 + depth * 1.15;
-      float ring = .0045 / (abs(radius - ringRadius) + .005);
-      float gate = .36 + .64 * smoothstep(.12, .88, sin(angle * 8. + fi * 1.7 - t * .4) * .5 + .5);
-      color += chroma(depth + t * .015, ring * gate * (.065 + uMid * .065) * (1. - depth * .42));
-    }
-    color += liquidChrome(p, t) * (.72 + uLevel * .45);
-    color += vec3(.25, .12, .4) * uBeat * smoothstep(.7, 0., radius);
-    color += vec3(1.7, 1.5, 1.25) * exp(-radius * radius * 50.) * (.12 + uBass * .4);
-    return color * (.82 + rays * .018);
-  }
-
-  vec3 signalScene(vec2 p, float t) {
-    vec3 color = vec3(0.); float columns = 34.;
-    float id = floor((p.x + 1.1) * columns), center = (id + .5) / columns - 1.1;
-    float normalizedId = clamp(id / (columns * 2.2), 0., 1.);
-    float bin = spectrumAt(normalizedId * normalizedId);
-    float held = peakAt(normalizedId * normalizedId);
-    float energy = .07 + bin * .58 + .055 * (sin(id * 12.31 + t * 1.7) * .5 + .5);
-    energy *= .58 + mix(uBass, uHigh, smoothstep(-.8, .9, center));
-    float column = smoothstep(.018, .006, abs(p.x - center)) * smoothstep(energy, energy - .04, abs(p.y));
-    float segments = smoothstep(.08, .24, fract((abs(p.y) + .012) * (28. + uPresence * 12.)));
-    float bar = column * segments;
-    color += chroma(center * .35 + t * .025, bar * (1.05 + bin * .7 + uBeat));
-    float heldHeight = (.07 + held * .58) * (.58 + mix(uBass, uHigh, smoothstep(-.8, .9, center)));
-    float cap = smoothstep(.022, .006, abs(p.x - center)) * smoothstep(.014, .003, abs(abs(p.y) - heldHeight));
-    color += vec3(1.7, 1.35, .78) * cap * (.45 + held * 1.15);
-    float liveX = clamp((p.x + 1.1) / 2.2, 0., 1.);
-    float liveBin = spectrumAt(liveX * liveX);
-    float crestHeight = (.07 + liveBin * .58) * (.58 + mix(uBass, uHigh, liveX));
-    float crest = .0045 / (abs(abs(p.y) - crestHeight) + .0055);
-    color += chroma(liveX * .62 - t * .022, crest * (.08 + uPresence * .12));
-    for (int i = 0; i < 4; i++) {
-      float fi = float(i);
-      float wave = sin(p.x * (7. + fi * 3.) - t * (1.2 + fi * .2)) * (.05 + uMid * .12);
-      wave += sin(p.x * 24. + t * .7) * uAir * .045;
-      float line = .007 / (abs(p.y - wave - (fi - 1.5) * .17) + .007);
-      color += chroma(fi * .18 + p.x * .1, line * .13);
-    }
-    return color;
-  }
-
-  vec3 warpScene(vec2 p, float t) {
-    p *= .94 + sin(uFlowTime * .64) * .055 - uBassHit * .035;
-    p += vec2(sin(uFlowTime * .27), cos(uFlowTime * .21)) * .028 * uMid;
-    float radius = length(p);
-    float angle = atan(p.y, p.x);
-    angle += log(radius + .12) * (1.25 + uMid * 1.4) - uFlowTime * (.52 + uMid * .36);
-    vec3 color = vec3(0.);
-    for (int i = 0; i < 13; i++) {
-      float fi = float(i);
-      float bin = spectrumAt(.02 + fi * .048);
-      float depth = fract(fi / 13. + uFlowTime * (.2 + uLevel * .1));
-      float tunnelRadius = .035 + pow(depth, 2.15) * 1.52;
-      float fold = sin(angle * (5. + mod(fi, 4.)) + uFlowTime * .9 + fi) * (.008 + depth * .026 + bin * .032);
-      float ring = (.003 + bin * .004) / (abs(radius - tunnelRadius - fold) + .004);
-      float fragments = .3 + .7 * smoothstep(.08, .82, sin(angle * 10. + fi * 2.1 - uFlowTime * 1.7) * .5 + .5);
-      color += chroma(depth + angle * .08 + t * .012, ring * fragments * (.075 + bin * .22) * (1. - depth * .34));
-    }
-    float spokes = .0035 / (abs(sin(angle * (6. + floor(uHigh * 4.)))) * radius + .0045);
-    color += chroma(angle * .18 - t * .03, spokes * smoothstep(1.3, .08, radius) * (.08 + uHigh * .11 + uAirHit * .18));
-    float horizon = abs(radius - (.12 + uBass * .055 + uBassHit * .025));
-    color += vec3(1.35, .75, 1.6) * .006 / (horizon + .006) * (.17 + uBass * .3);
-    color += vec3(.02, .01, .05) * smoothstep(.22, .02, radius);
-    return color;
-  }
+  ${signalSceneGLSL}
+  ${valleySkyGLSL}
 
   float flightPath(float z) {
     return sin(z * .075) * 1.45 + sin(z * .031 + 1.7) * .85;
@@ -375,7 +286,7 @@ const fragmentShader = /* glsl */ `
     float horizon = pow(max(0., 1. - abs(ray.y + .02)), 18.);
     vec3 sky = chroma(ray.x * .08 + t * .012, .018 + horizon * .075);
     sky += vec3(.015, .008, .035) + vec3(.08, .025, .12) * max(0., ray.y) * uHigh;
-    if (hit < .5) return sky;
+    if (hit < .5) return valleySky(ray, sky);
 
     // Refine the first intersection so longer air steps don't turn nearby
     // ridgelines into visibly coarse terraces.
@@ -453,7 +364,7 @@ const fragmentShader = /* glsl */ `
     return color;
   }
 
-  ${horizonAsciiGLSL}
+  ${horizonAuraGLSL}
   ${horizonWavesGLSL}
 
   vec3 horizonScene(vec2 p, float t) {
@@ -481,7 +392,7 @@ const fragmentShader = /* glsl */ `
     color += chroma(.12 + t * .02, horizonGlow * (.09 + uBass * .19));
 
     color += horizonWaves(p, baseline);
-    color += horizonAscii(p, t, max(tower, peakCap));
+    color += horizonAura(p, baseline, max(tower, peakCap));
     return color;
   }
 
@@ -513,38 +424,10 @@ const fragmentShader = /* glsl */ `
     return color;
   }
 
-  vec3 arcScene(vec2 p, float t) {
-    float radius = length(p);
-    float angle = atan(p.y, p.x);
-    float angular = fract((angle + PI) / (2. * PI));
-    float bin = spectrumAt(angular * .92);
-    float ringRadius = .42 + bin * .14 + sin(angle * 5. - uFlowTime * 1.3) * (.018 + uHigh * .025);
-    float ring = .006 / (abs(radius - ringRadius) + .006);
-    vec3 color = chroma(angular + t * .045, ring * (.34 + bin * .72 + uBeat * .24));
-    float innerRing = .003 / (abs(radius - ringRadius * .84) + .004);
-    color += vec3(.3, .9, 1.4) * innerRing * (.09 + uHigh * .12);
-    for (int i = 0; i < 8; i++) {
-      float fi = float(i);
-      float theta = fi / 8. * 2. * PI + uFlowTime * (.08 + fi * .012);
-      float crooked = theta + sin(radius * (15. + fi) - uFlowTime * (2. + fi * .08) + fi) * (.035 + uHigh * .11);
-      float angleDistance = abs(atan(sin(angle - crooked), cos(angle - crooked))) * max(radius, .14);
-      float bolt = .0025 / (angleDistance + .003) * smoothstep(1.25, .18, radius) * smoothstep(.06, .22, radius);
-      float flicker = .45 + .55 * step(.42, hash21(vec2(fi, floor(uFlowTime * 12.))));
-      color += chroma(fi * .13 + t * .07, bolt * flicker * (.08 + uHigh * .22 + uAirHit * .25));
-    }
-    vec2 flareCell = floor((p + 1.5) * 8.);
-    vec2 flareUv = fract((p + 1.5) * 8.) - .5;
-    float flareSeed = hash21(flareCell);
-    float flareCore = smoothstep(.11, .015, length(flareUv)) * step(.9 - uHigh * .08, flareSeed);
-    float flareRay = .002 / (min(abs(flareUv.x), abs(flareUv.y)) + .003) * step(.93, flareSeed);
-    color += chroma(flareSeed + t * .03, flareCore * 1.7 + flareRay * .045);
-    return color;
-  }
-
   vec3 sceneColor(vec2 p, float t, float mode) {
     if (mode < .5) {
       vec3 foreground = bloomScene(p, t) + bloomSoundWaves() + smokeLayer(p, t, .82, 0.);
-      vec3 flow = texture2D(uGeissScene, vUv).rgb;
+      vec3 flow = texture2D(uBloomFlow, vUv).rgb;
       // Geiss is an underlay here: compress its highlights and make room for
       // the flower, sound-wave rings and smoke instead of bleaching their glow.
       flow /= 1. + flow * .65;
@@ -553,21 +436,23 @@ const fragmentShader = /* glsl */ `
       float reveal = mix(.12, 1., smoothstep(.18, .82, length(screen)));
       return foreground + flow * .42 * reveal / (1. + light * 2.4);
     }
-    if (mode < 1.5) return prismScene(p, t);
-    if (mode < 2.5) return vec3(0.); // Retired Orbit renderer ID; not in the scene catalogue.
+    if (mode < 2.5) return vec3(0.); // Retired Prism/Orbit IDs; never reused by the catalogue.
     if (mode < 3.5) return signalScene(p, t);
     if (mode < 4.5) return texture2D(uTorusScene, vUv).rgb;
-    if (mode < 5.5) return warpScene(p, t) + smokeLayer(p, t, .68, 0.);
+    if (mode < 5.5) return vec3(0.); // Retired Warp ID.
     if (mode < 6.5) return vectorScene(p, t) + smokeLayer(p, t, .48, 1.);
     if (mode < 7.5) return reactorScene(p, t);
     if (mode < 8.5) return horizonScene(p, t);
     if (mode < 9.5) return radialScene(p, t);
-    if (mode < 10.5) return arcScene(p, t) + smokeLayer(p, t, .6, 0.);
+    if (mode < 10.5) return vec3(0.); // Retired Arc ID.
     if (mode < 11.5) return texture2D(uCrystalScene, vUv).rgb;
     if (mode < 12.5) return texture2D(uRoadScene, vUv).rgb;
-    if (mode < 13.5) return texture2D(uEndlessScene, vUv).rgb;
+    if (mode < 13.5) return vec3(0.); // Retired Tunnel ID; do not renumber subsequent scenes.
     if (mode < 14.5) return texture2D(uFlyoverScene, vUv).rgb;
-    return texture2D(uGeissScene, vUv).rgb;
+    if (mode < 15.5) return texture2D(uGeissScene, vUv).rgb
+      + geissTunnelRings(vUv, uResolution, uGeissPrimary, uGeissSecondary);
+    if (mode < 16.5) return texture2D(uAuraScene, vUv).rgb;
+    return texture2D(uAdditionalScene, vUv).rgb;
   }
   void main() {
     vec2 p = (gl_FragCoord.xy * 2. - uResolution.xy) / min(uResolution.x, uResolution.y);
@@ -605,7 +490,7 @@ const fragmentShader = /* glsl */ `
 `;
 
 export class VisualEngine {
-  constructor(container) {
+  constructor(container, initialMode = NEON_CITY_MODE) {
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
     this.renderer.setClearColor(0x040309, 1);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -631,6 +516,7 @@ export class VisualEngine {
     this.previousSmoke = new SmokeSimulation(this.renderer);
     this.procedural = new ProceduralScenes(this.renderer, this.spectrumTexture);
     this.geiss = new GeissFlow(this.renderer);
+    this.bloomFlow = new GeissFlow(this.renderer, { enhanced: false });
     this.horizonWaves = new HorizonWaves();
     this.horizonWaveTexture = new THREE.DataTexture(this.horizonWaves.data, HORIZON_WAVE_SAMPLES, HORIZON_WAVE_COUNT, THREE.RedFormat, THREE.UnsignedByteType);
     this.horizonWaveTexture.minFilter = this.horizonWaveTexture.magFilter = THREE.LinearFilter;
@@ -645,14 +531,14 @@ export class VisualEngine {
     this.uniforms = {
       uResolution: { value: new THREE.Vector2(2, 2) },
       uValleySteps: { value: 72 },
+      uValleySkySteps: { value: VALLEY_SKY_STEPS.auto },
       uHorizonBands: { value: HORIZON_BANDS },
-      uHorizonAscii: { value: createHorizonAsciiAtlas() },
-      uHorizonAsciiGrid: { value: new THREE.Vector2(1, 1) },
+      uHorizonAura: { value: this.procedural.texture(8) },
       uHorizonWaveforms: { value: this.horizonWaveTexture },
       uHorizonLines: { value: this.horizonWaves.lines },
       uTime: { value: 0 }, uFlowTime: { value: 0 }, uFlightTime: { value: 0 }, uLevel: { value: 0 }, uBass: { value: 0 }, uMid: { value: 0 },
       uRadialAngle: { value: 0 },
-      uHigh: { value: 0 }, uBeat: { value: 0 }, uMode: { value: 0 },
+      uHigh: { value: 0 }, uBeat: { value: 0 }, uMode: { value: initialMode },
       uImpact: { value: 0 }, uBassHit: { value: 0 }, uMidHit: { value: 0 },
       uAirHit: { value: 0 }, uShockwave: { value: 2 }, uBarBeat: { value: 0 }, uPalette: { value: 0 },
       uSub: { value: 0 }, uPresence: { value: 0 }, uAir: { value: 0 },
@@ -662,9 +548,14 @@ export class VisualEngine {
       uTorusScene: { value: this.procedural.texture(4) },
       uCrystalScene: { value: this.procedural.texture(11) },
       uRoadScene: { value: this.procedural.texture(12) },
-      uEndlessScene: { value: this.procedural.texture(13) },
       uFlyoverScene: { value: this.procedural.texture(14) },
+      uAuraScene: { value: this.procedural.texture(AURA_MODE) },
+      uAdditionalScene: { value: this.procedural.texture(DARK_MATTER_MODE) },
       uGeissScene: { value: this.geiss.texture },
+      uGeissRings: { value: this.geiss.state.tunnelRings },
+      uGeissTunnelWeight: { value: 0 }, uGeissRotation: { value: 0 },
+      uGeissPrimary: this.geiss.uniforms.uPrimary, uGeissSecondary: this.geiss.uniforms.uSecondary,
+      uBloomFlow: { value: this.bloomFlow.texture },
       uBloomWaveforms: { value: this.bloomWaveTexture }, uBloomRings: { value: this.bloomWaves.rings },
       uSmokeTexel: { value: new THREE.Vector2(1 / 192, 1 / 108) },
     };
@@ -674,7 +565,7 @@ export class VisualEngine {
     this.mixer = new SceneMixer(this.renderer);
     this.elapsed = 0; this.flowElapsed = 0; this.flowVelocity = 1; this.flightElapsed = 0; this.flightVelocity = .58;
     this.radialMotion = new RadialMotion();
-    this.paused = false; this.mode = 0; this.blend = new SceneBlend(0); this.impact = 0; this.shockwave = 2;
+    this.paused = false; this.mode = initialMode; this.blend = new SceneBlend(initialMode); this.impact = 0; this.shockwave = 2;
     this.palette = 0; this.previousPalette = 0; this.requestedPalette = 0;
     this.previousBands = new THREE.Vector3();
     this.bandHits = new THREE.Vector3();
@@ -699,6 +590,7 @@ export class VisualEngine {
   setQuality(quality) {
     this.quality = quality;
     this.uniforms.uValleySteps.value = { auto: 72, high: 88, ultra: 104 }[quality] || 72;
+    this.uniforms.uValleySkySteps.value = VALLEY_SKY_STEPS[quality] || VALLEY_SKY_STEPS.auto;
     const caps = { auto: 1.5, high: 1.65, ultra: 2 };
     this.pixelRatio = Math.min(window.devicePixelRatio, caps[quality] || 1.5);
     this.adaptiveCooldown = 240;
@@ -710,13 +602,13 @@ export class VisualEngine {
     this.renderer.setSize(width, height);
     const drawingSize = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     this.uniforms.uResolution.value.copy(drawingSize);
-    this.uniforms.uHorizonAsciiGrid.value.set(...horizonAsciiGrid(width, height));
     this.post.resize(Math.round(drawingSize.x), Math.round(drawingSize.y));
     this.mixer.resize(Math.round(drawingSize.x), Math.round(drawingSize.y));
     this.smoke.resize(width, height, this.quality);
     this.previousSmoke.resize(width, height, this.quality);
     this.procedural.resize(drawingSize.x, drawingSize.y, this.quality);
     this.geiss.resize(drawingSize.x, drawingSize.y, this.quality);
+    this.bloomFlow.resize(drawingSize.x, drawingSize.y, this.quality);
   }
   resize() {
     const cap = this.quality === "ultra" ? 2 : this.quality === "high" ? 1.65 : 1.75;
@@ -768,14 +660,17 @@ export class VisualEngine {
     this.peakTexture.needsUpdate = true;
   }
   updateGeiss(audio, delta) {
-    const usesFlow = mode => mode === 0 || mode === GEISS_MODE;
-    const current = usesFlow(this.mode);
-    const outgoing = this.blend.active && usesFlow(this.blend.previous);
-    // Bloom and Geiss Flow share one live history. Advance once per frame,
-    // not once per scene, including when both are visible in a crossfade.
-    if (current || outgoing) this.geiss.render(audio, delta,
-      current ? this.palette : this.previousPalette, this.paused);
+    // Independent histories keep the expressive presets out of Bloom's backdrop.
+    for (const [mode, flow] of [[0, this.bloomFlow], [GEISS_MODE, this.geiss]]) {
+      const current = this.mode === mode;
+      if (current || (this.blend.active && this.blend.previous === mode)) {
+        flow.render(audio, delta, current ? this.palette : this.previousPalette, this.paused);
+      }
+    }
     this.uniforms.uGeissScene.value = this.geiss.texture;
+    this.uniforms.uGeissTunnelWeight.value = this.geiss.state.extraWeights.y;
+    this.uniforms.uGeissRotation.value = this.geiss.state.rotation;
+    this.uniforms.uBloomFlow.value = this.bloomFlow.texture;
   }
   render(audio, delta) {
     this.updatePerformance(delta);
@@ -798,14 +693,14 @@ export class VisualEngine {
     if (!this.paused) {
       const targetVelocity = 1.15 + audio.level * 1.55 + audio.bass * .8 + audio.high * .35;
       this.flowVelocity += (targetVelocity - this.flowVelocity) * Math.min(1, delta * 2.8);
-      if (audio.transient) this.flowVelocity += .7 + audio.bass * .8;
+      if (audio.transient) this.flowVelocity += (.7 + audio.bass * .8) * (audio.response ?? 1);
       this.flowElapsed += Math.min(delta, .05) * this.flowVelocity;
       const targetFlightVelocity = .46 + audio.level * .18 + audio.bass * .09;
       this.flightVelocity += (targetFlightVelocity - this.flightVelocity) * Math.min(1, delta * .85);
-      if (audio.transient) this.flightVelocity += .012;
+      if (audio.transient) this.flightVelocity += .012 * (audio.response ?? 1);
       this.flightElapsed += Math.min(delta, .05) * this.flightVelocity;
     }
-    if (audio.transient) { this.impact = 1; this.shockwave = .02; }
+    if (audio.transient) { this.impact = Math.min(1, audio.response ?? 1); this.shockwave = .02; }
     else this.impact *= Math.exp(-delta * 8.5);
     this.shockwave = Math.min(2, this.shockwave + delta * (1.05 + audio.bass * .5));
     const currentBands = [audio.bass, audio.mid, audio.high];
@@ -839,8 +734,12 @@ export class VisualEngine {
       this.uniforms.uTorusScene.value = this.procedural.texture(4);
       this.uniforms.uCrystalScene.value = this.procedural.texture(11);
       this.uniforms.uRoadScene.value = this.procedural.texture(12);
-      this.uniforms.uEndlessScene.value = this.procedural.texture(13);
       this.uniforms.uFlyoverScene.value = this.procedural.texture(14);
+      this.uniforms.uAuraScene.value = this.procedural.texture(AURA_MODE);
+      // Bind per mixer draw so new scenes share one sampler without exceeding
+      // the WebGL texture-unit budget; both sides of a blend remain independent.
+      this.uniforms.uAdditionalScene.value = this.procedural.texture(mode >= DARK_MATTER_MODE ? mode : DARK_MATTER_MODE);
+      this.uniforms.uHorizonAura.value = this.procedural.texture(8);
     };
     if (this.blend.active) {
       this.mixer.render(this.scene, this.camera, this.blend.weight, index => index === 0
@@ -848,12 +747,22 @@ export class VisualEngine {
         : prepare(this.mode, this.palette, this.smoke));
     } else prepare(this.mode, this.palette, this.smoke);
     const mix = (a, b) => this.blend.active ? a + (b - a) * this.blend.weight : b;
-    const impactScale = mode => mode === 9 || mode === GEISS_MODE || isProceduralMode(mode) ? .15 : 1;
-    const sceneFx = mode => mode === 8 || mode === 14 || mode === GEISS_MODE ? 0 : 1;
+    const impactScale = mode => mode === 3 ? .35 : mode === 9 || mode === GEISS_MODE || (isProceduralMode(mode) && mode !== 8) ? .15 : 1;
+    const sceneFx = mode => mode === 8 || mode === 14 || mode === GEISS_MODE || mode === AURA_MODE || mode === DARK_MATTER_MODE || mode === LIGHT_TUNNEL_MODE || mode === FRACTAL_LOTUS_MODE || mode === VOXEL_TUNNEL_MODE || mode === MAGNETIC_SILK_MODE || mode === CYBER_TUNNEL_MODE || mode === FERROFLUID_MODE || mode === NEON_MARCH_MODE || mode === NEON_CITY_MODE ? 0 : 1;
     const postAudio = { ...audio, beat: audio.beat * mix(impactScale(this.blend.previous), impactScale(this.mode)) };
+    const silkWeight = mix(Number(this.blend.previous === MAGNETIC_SILK_MODE), Number(this.mode === MAGNETIC_SILK_MODE));
+    // Silk responds through colour only: no scene-wide beat flash or pumping.
+    for (const key of ['beat', 'bass', 'mid', 'high', 'level']) postAudio[key] *= 1 - silkWeight;
+    const cyberWeight = mix(Number(this.blend.previous === CYBER_TUNNEL_MODE), Number(this.mode === CYBER_TUNNEL_MODE));
+    const cityWeight = mix(Number(this.blend.previous === NEON_CITY_MODE), Number(this.mode === NEON_CITY_MODE));
+    const signalWeight = mix(Number(this.blend.previous === 3), Number(this.mode === 3));
+    const defaultBloom = .42 + audio.bass * .2;
     this.post.render(this.blend.active ? this.mixer.scene : this.scene,
       this.blend.active ? this.mixer.camera : this.camera, postAudio, this.elapsed, 1,
-      mix(sceneFx(this.blend.previous), sceneFx(this.mode)));
+      mix(sceneFx(this.blend.previous), sceneFx(this.mode)), {
+        bloomStrength: defaultBloom + (CYBER_TUNNEL_SETTINGS.bloomStrength - defaultBloom) * cyberWeight + (2.1 - defaultBloom) * cityWeight + (.20 + audio.bass * .06 - defaultBloom) * signalWeight + (.42 - defaultBloom) * silkWeight,
+        rgbShiftAmount: CYBER_TUNNEL_SETTINGS.rgbShiftAmount * cyberWeight,
+      });
     return this.getPerformanceInfo();
   }
 }
